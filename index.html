@@ -478,4 +478,159 @@
                                     <button onClick={() => setView('list')} className="w-full flex items-center gap-2 p-2 rounded hover:bg-black/5 text-sm font-bold opacity-70"><Home size={16} /> 서재로 돌아가기</button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-2 w-full">
-                                    {chapters.map((chapter, idx)
+                                    {chapters.map((chapter, idx) => (
+                                        <button key={chapter.id} onClick={() => setCurrentChapterIndex(idx)} className={`w-full text-left p-3 rounded-lg mb-1 transition-colors text-sm ${currentChapterIndex === idx ? theme.activeItem : 'hover:bg-black/5 opacity-80 hover:opacity-100'}`}>
+                                            <span className="text-xs opacity-60 block mb-0.5">#{idx + 1}</span>
+                                            <span className="block font-medium truncate">{chapter.title}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* 메인 콘텐츠 */}
+                    <div className="flex-1 flex flex-col h-full relative min-w-0">
+                        <header className={`h-16 flex items-center justify-between px-4 border-b border-black/10 sticky top-0 z-20 ${theme.ui}`}>
+                            <div className="flex items-center gap-3 overflow-hidden">
+                                {view === 'reader' && <button onClick={toggleSidebar} className="p-2 rounded hover:bg-black/10 shrink-0"><Menu size={20} /></button>}
+                                <h1 className="font-bold text-lg truncate">
+                                    {view === 'list' ? 'Jinos 웹소설' : <span className="flex flex-col md:block"><span className="md:hidden text-xs opacity-70">{currentNovel?.title}</span><span>{chapters[currentChapterIndex]?.title || currentNovel?.title}</span></span>}
+                                </h1>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                                {view === 'reader' && <div className="text-xs font-mono opacity-50 mr-2 min-w-[3ch] text-right">{scrollProgress}%</div>}
+                                
+                                <button onClick={toggleFullScreen} className="p-2 rounded-full hover:bg-black/5 text-gray-500 transition-colors" title={isFullScreen ? "전체화면 종료" : "전체화면"}>
+                                    {isFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                                </button>
+
+                                {view === 'list' && <button onClick={() => setHelpOpen(true)} className="p-2 rounded-full hover:bg-black/5 text-gray-500"><HelpCircle size={20} /></button>}
+                                <button onClick={() => setSettingsOpen(!settingsOpen)} className={`p-2 rounded-full transition-colors ${settingsOpen ? 'bg-black/10' : 'hover:bg-black/5'}`}><Settings size={20} /></button>
+                            </div>
+
+                            {/* 설정 팝업 */}
+                            {settingsOpen && (
+                                <div className={`absolute top-16 right-2 w-80 max-w-[95vw] p-5 rounded-xl shadow-2xl border ${theme.card} z-50 text-sm`}>
+                                    <div className="space-y-5">
+                                        <div>
+                                            <label className="text-xs font-bold opacity-60 mb-2 block uppercase">테마</label>
+                                            <div className="grid grid-cols-5 gap-1 bg-black/5 p-1 rounded-lg">
+                                                {Object.values(THEMES).map((t) => (
+                                                    <button key={t.id} onClick={() => setThemeKey(t.id)} className={`h-8 rounded flex items-center justify-center ${themeKey === t.id ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:opacity-80'}`} style={{ backgroundColor: t.id === 'light' ? '#fff' : t.id === 'sepia' ? '#f4ecd8' : t.id === 'green' ? '#e0f2f1' : t.id === 'dark' ? '#2a2a2a' : '#000' }}>
+                                                        {themeKey === t.id && <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold opacity-60 mb-2 block uppercase">폰트 종류</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {Object.entries(FONTS).map(([key, f]) => (
+                                                    <button key={key} onClick={() => setFontFamilyKey(key)} className={`py-2 px-1 rounded border text-xs ${fontFamilyKey === key ? 'border-blue-500 bg-blue-50 text-blue-700 font-bold' : 'border-gray-300 opacity-70 hover:opacity-100'}`}>{f.name.split('(')[0]}</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold opacity-60 mb-2 block uppercase flex justify-between"><span>글자 크기</span><span>{fontSize}px</span></label>
+                                            <input type="range" min="12" max="32" step="1" value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} className="w-full accent-blue-500 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold opacity-60 mb-2 block uppercase">줄 간격</label>
+                                            <div className="flex gap-2 bg-black/5 p-1 rounded-lg">
+                                                {[1.4, 1.6, 1.8, 2.0, 2.4].map((lh) => (
+                                                    <button key={lh} onClick={() => setLineHeight(lh)} className={`flex-1 py-1 rounded text-xs ${lineHeight === lh ? 'bg-white shadow text-black font-bold' : 'hover:bg-black/5 opacity-60'}`}>{lh}</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="pt-2 border-t border-gray-500/20">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <MousePointerClick size={16} className="opacity-60" />
+                                                    <span className="font-bold opacity-80">제스처/더블클릭 이동</span>
+                                                </div>
+                                                <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                                    <input type="checkbox" name="toggle" id="gesture-toggle" className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={gestureEnabled} onChange={(e) => setGestureEnabled(e.target.checked)}/>
+                                                    <label htmlFor="gesture-toggle" className={`toggle-label block overflow-hidden h-5 rounded-full cursor-pointer ${gestureEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}></label>
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] opacity-50 mt-1 pl-6">왼쪽/오른쪽 더블클릭 또는 드래그로 이전/다음 화 이동</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </header>
+
+                        <main 
+                            ref={viewerRef} 
+                            className="flex-1 overflow-y-auto relative scroll-smooth no-scrollbar select-text"
+                            onDoubleClick={handleDoubleClick}
+                            onMouseDown={handlePointerDown}
+                            onMouseUp={handlePointerUp}
+                            onTouchStart={handlePointerDown}
+                            onTouchEnd={handlePointerUp}
+                        >
+                            {view === 'list' && (
+                                <div className="max-w-6xl mx-auto p-4 md:p-8">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {novels.map((novel) => (
+                                            <button key={novel.id} onClick={() => selectNovel(novel)} className={`group flex flex-col text-left rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all transform hover:-translate-y-1 border ${theme.card}`}>
+                                                <div className={`h-48 w-full ${themeKey === 'black' ? 'bg-gray-900' : 'bg-gray-200'} relative overflow-hidden flex items-center justify-center`}>
+                                                    {novel.coverUrl ? <img src={novel.coverUrl} alt={novel.title} className="w-full h-full object-cover" /> : <img src={`./${encodeURI(novel.path)}/cover.jpg`} alt={novel.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onError={(e) => { const target = e.target; const basePath = `./${encodeURI(novel.path)}/`; if (target.src.match(/\.jpg$/i)) target.src = `${basePath}cover.png`; else if (target.src.match(/\.png$/i)) target.src = `${basePath}cover.jpeg`; else { target.style.display = 'none'; target.nextElementSibling.style.display = 'flex'; } }} />}
+                                                    <div className={`hidden absolute inset-0 items-center justify-center ${themeKey === 'black' ? 'text-gray-700' : 'text-gray-400'}`}><ImageIcon size={48} /></div>
+                                                </div>
+                                                <div className="p-4 flex-1 flex flex-col justify-center">
+                                                    <h3 className="font-bold text-lg mb-2 line-clamp-2">{novel.title}</h3>
+                                                    <span className="text-sm opacity-60 flex items-center gap-1"><Book size={14} /> 소설 읽기</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {view === 'reader' && (
+                                <div className="max-w-3xl mx-auto px-5 py-8 md:py-16 min-h-full flex flex-col">
+                                    <div className="mb-10 pb-6 border-b border-black/10 text-center select-none">
+                                        <span className="text-xs font-bold opacity-50 mb-2 block uppercase tracking-wider">Episode {chapters.length > 0 && chapters[currentChapterIndex].id}</span>
+                                        <h2 className="text-2xl md:text-3xl font-bold leading-tight">{chapters.length > 0 && chapters[currentChapterIndex].title}</h2>
+                                    </div>
+                                    {isLoading ? (
+                                        <div className="flex-1 flex justify-center items-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-current opacity-30"></div></div>
+                                    ) : (
+                                        <div className="prose max-w-none whitespace-pre-wrap outline-none text-justify" style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight }}>{content}</div>
+                                    )}
+                                    <div className="mt-20 pt-8 border-t border-black/10 flex justify-between items-center select-none">
+                                        <button onClick={handlePrev} disabled={currentChapterIndex === 0} className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${currentChapterIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/5 active:bg-black/10'}`}><ChevronLeft size={20} /><span className="hidden sm:inline font-medium">이전 화</span></button>
+                                        <span className="text-sm opacity-60 font-mono">{currentChapterIndex + 1} / {chapters.length}</span>
+                                        <button onClick={handleNext} disabled={currentChapterIndex === chapters.length - 1} className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${currentChapterIndex === chapters.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/5 active:bg-black/10'}`}><span className="hidden sm:inline font-medium">다음 화</span><ChevronRight size={20} /></button>
+                                    </div>
+                                </div>
+                            )}
+                        </main>
+                    </div>
+
+                    {helpOpen && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={() => setHelpOpen(false)}>
+                            <div className={`max-w-md w-full p-6 rounded-xl shadow-2xl relative ${theme.bg} ${theme.text}`} onClick={e => e.stopPropagation()}>
+                                <button onClick={() => setHelpOpen(false)} className="absolute top-4 right-4 opacity-50 hover:opacity-100"><XIcon size={24} /></button>
+                                <h3 className="text-xl font-bold mb-4">Jinos 웹소설 가이드</h3>
+                                <div className="space-y-4 text-sm opacity-80 leading-relaxed">
+                                    <p>GitHub Repository에 소설 파일을 올리면 자동으로 이곳에 표시됩니다.</p>
+                                    <ul className="list-disc pl-5 space-y-1">
+                                        <li><strong>제스처:</strong> 화면 왼쪽/오른쪽 더블클릭 또는 좌우 드래그로 회차 이동 가능</li>
+                                    </ul>
+                                </div>
+                                <div className="mt-6 text-center"><button onClick={() => setHelpOpen(false)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">닫기</button></div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<WebNovelReader />);
+    </script>
+</body>
+</html>
