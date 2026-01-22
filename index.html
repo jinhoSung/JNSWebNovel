@@ -15,37 +15,44 @@
     <!-- Babel (JSX 컴파일러) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Google Fonts (Noto Sans KR, Noto Serif KR, Gowun Dodum) -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* 커스텀 스크롤바 등 추가 스타일 */
         body { margin: 0; padding: 0; touch-action: pan-y; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* 폰트 패밀리 정의 */
         .font-sans-kr { font-family: 'Noto Sans KR', sans-serif; }
         .font-serif-kr { font-family: 'Noto Serif KR', serif; }
         .font-dodum-kr { font-family: 'Gowun Dodum', sans-serif; }
+
+        /* 이어보기 모달 애니메이션 */
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out forwards;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo } = React;
+        const { useState, useEffect, useRef } = React;
 
         // ----------------------------------------------------------------------
         // [사용자 설정 영역]
         // ----------------------------------------------------------------------
         const GITHUB_CONFIG = {
-            owner: "jinhoSung",      // 1. GitHub 아이디
-            repo: "JNSWebNovel",     // 2. 저장소 이름
-            rootPath: "Novels",      // 3. 소설 폴더들이 들어있는 최상위 폴더명
-            branch: "main",          // 4. 브랜치 이름
+            owner: "jinhoSung",
+            repo: "JNSWebNovel",
+            rootPath: "Novels",
+            branch: "main",
         };
 
         // ----------------------------------------------------------------------
@@ -68,7 +75,8 @@
         const AlertCircle = (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></>} />;
         const Home = (props) => <Icon {...props} path={<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>} />;
         const ImageIcon = (props) => <Icon {...props} path={<><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></>} />;
-        const AlignLeft = (props) => <Icon {...props} path={<><line x1="21" x2="3" y1="6" y2="6"/><line x1="15" x2="3" y1="12" y2="12"/><line x1="17" x2="3" y1="18" y2="18"/></>} />;
+        // 오류 수정됨: RotateCcw 아이콘의 path 요소들을 Fragment (<>...</>)로 감쌌습니다.
+        const RotateCcw = (props) => <Icon {...props} path={<><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></>} />;
 
         // 테마 설정
         const THEMES = {
@@ -125,12 +133,16 @@
             const [errorMsg, setErrorMsg] = useState(null);
 
             // UI 상태
-            const [sidebarOpen, setSidebarOpen] = useState(false); // 모바일용 사이드바
-            const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(true); // 데스크탑용 사이드바 토글
+            const [sidebarOpen, setSidebarOpen] = useState(false);
+            const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(true);
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [helpOpen, setHelpOpen] = useState(false);
             
-            // 설정 상태 (LocalStorage 연동)
+            // 이어보기 상태
+            const [lastReadData, setLastReadData] = useState(null);
+            const [showResumeModal, setShowResumeModal] = useState(false);
+
+            // 설정 상태
             const [themeKey, setThemeKey] = useLocalStorage('jinos_theme', 'sepia');
             const [fontSize, setFontSize] = useLocalStorage('jinos_fontsize', 18);
             const [lineHeight, setLineHeight] = useLocalStorage('jinos_lineheight', 1.8);
@@ -141,13 +153,47 @@
             const font = FONTS[fontFamilyKey] || FONTS.sans;
 
             const isPreviewEnv = window.location.protocol === 'blob:' || window.location.hostname === '';
-            const isMobile = window.innerWidth < 768;
 
-            // 1. 소설 목록 가져오기
+            // 1. 초기 로드 (소설 목록 + 마지막 읽은 기록 확인)
             useEffect(() => {
                 fetchNovelList();
+                
+                // 마지막 읽은 기록 확인
+                try {
+                    const savedRead = localStorage.getItem('jinos_last_read');
+                    if (savedRead) {
+                        const parsed = JSON.parse(savedRead);
+                        // 유효성 검사 (필수 데이터가 있는지)
+                        if (parsed && parsed.novelId && parsed.chapterTitle) {
+                            setLastReadData(parsed);
+                            setShowResumeModal(true);
+                        }
+                    }
+                } catch (e) {
+                    console.error("기록 불러오기 실패", e);
+                }
             }, []);
 
+            // 2. 소설 읽는 중 자동 저장 (진행 상황)
+            useEffect(() => {
+                if (view === 'reader' && currentNovel && chapters.length > 0) {
+                    const currentChapter = chapters[currentChapterIndex];
+                    if (!currentChapter) return;
+
+                    const saveData = {
+                        novelId: currentNovel.id,
+                        novelTitle: currentNovel.title,
+                        novelPath: currentNovel.path,
+                        chapterIndex: currentChapterIndex,
+                        chapterTitle: currentChapter.title,
+                        timestamp: new Date().getTime()
+                    };
+                    
+                    localStorage.setItem('jinos_last_read', JSON.stringify(saveData));
+                }
+            }, [currentChapterIndex, view, currentNovel, chapters]);
+
+            // 소설 목록 가져오기 함수
             const fetchNovelList = async () => {
                 setIsGlobalLoading(true);
                 setErrorMsg(null);
@@ -193,24 +239,24 @@
                 }
             };
 
-            // 2. 소설 선택 (여기가 수정된 부분입니다)
-            const selectNovel = async (novel) => {
+            // 소설 선택 및 로드 (targetIndex가 있으면 해당 화로 바로 이동)
+            const selectNovel = async (novel, targetIndex = 0) => {
                 setCurrentNovel(novel);
                 setView('reader');
                 setChapters([]);
                 setContent("");
                 setIsLoading(true);
-
-                // 모바일에서는 사이드바를 기본적으로 닫음, 데스크탑은 염
                 setSidebarOpen(false); 
                 setDesktopSidebarVisible(true);
 
                 if (isPreviewEnv) {
                     setTimeout(() => {
-                        setChapters([
+                        const demoChapters = [
                             { id: 1, title: "제1화 - 시작", fileName: "1.시작.txt", downloadUrl: "" },
                             { id: 2, title: "제2화 - 모험", fileName: "2.모험.txt", downloadUrl: "" },
-                        ]);
+                        ];
+                        setChapters(demoChapters);
+                        setCurrentChapterIndex(targetIndex);
                         setIsLoading(false);
                     }, 300);
                     return;
@@ -226,17 +272,18 @@
                     const loadedChapters = data
                         .filter((file) => file.name.endsWith('.txt'))
                         .map((file) => {
+                            // [수정된 파일명 파싱 로직]
                             // 1. 확장자 제거
                             let rawName = file.name.replace(/\.txt$/i, ''); 
 
-                            // 2. 대괄호 식별자 [TXT-001] 같은 것 제거
+                            // 2. 대괄호 태그 제거 (예: [TXT-001])
                             rawName = rawName.replace(/\[.*?\]/g, '').trim();
 
-                            // 3. 숫자(회차) 추출
+                            // 3. 숫자 추출 (가장 먼저 나오는 숫자)
                             const numMatch = rawName.match(/(\d+)/);
                             const chapterNum = numMatch ? parseInt(numMatch[0]) : 0;
                             
-                            // 4. 제목 추출 (숫자 제거 + 특수문자 제거)
+                            // 4. 제목 추출 (숫자 제거 및 앞뒤 구분자 제거)
                             let chapterTitle = rawName;
                             if (numMatch) {
                                 chapterTitle = chapterTitle.replace(numMatch[0], '')
@@ -244,7 +291,7 @@
                                     .trim();
                             }
 
-                            // 5. 제목이 비어있으면 원본에서 특수문자만 뺀 것 사용
+                            // 5. 제목이 비어있거나 이상하면 정리
                             if (!chapterTitle) {
                                 chapterTitle = rawName.replace(chapterNum, '').trim();
                                 if(!chapterTitle) chapterTitle = "제목 없음";
@@ -260,7 +307,13 @@
                         .sort((a, b) => a.id - b.id);
 
                     setChapters(loadedChapters);
-                    if (loadedChapters.length > 0) setCurrentChapterIndex(0);
+                    
+                    // 이어보기 인덱스가 유효한지 확인 후 이동, 아니면 0
+                    if (targetIndex >= 0 && targetIndex < loadedChapters.length) {
+                        setCurrentChapterIndex(targetIndex);
+                    } else {
+                        setCurrentChapterIndex(0);
+                    }
                 } catch (error) {
                     alert("오류 발생: " + error.message);
                 } finally {
@@ -268,7 +321,21 @@
                 }
             };
 
-            // 3. 챕터 내용 로드
+            // 이어보기 실행 함수
+            const handleResume = () => {
+                setShowResumeModal(false);
+                if (lastReadData) {
+                    // 저장된 정보로 소설 객체 재구성
+                    const novelObj = {
+                        id: lastReadData.novelId,
+                        title: lastReadData.novelTitle,
+                        path: lastReadData.novelPath
+                    };
+                    selectNovel(novelObj, lastReadData.chapterIndex);
+                }
+            };
+
+            // 챕터 내용 로드
             useEffect(() => {
                 const fetchChapterContent = async () => {
                     if (view !== 'reader' || chapters.length === 0) return;
@@ -334,10 +401,48 @@
             return (
                 <div className={`flex h-screen overflow-hidden ${theme.bg} ${theme.text} ${font.class} transition-colors duration-300`}>
                     
-                    {/* 사이드바 (데스크탑: visibility 제어 / 모바일: transform 제어) */}
+                    {/* 이어보기 팝업 모달 */}
+                    {showResumeModal && lastReadData && view === 'list' && (
+                        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center pointer-events-none">
+                            <div className="absolute inset-0 bg-black/40 pointer-events-auto transition-opacity" onClick={() => setShowResumeModal(false)}></div>
+                            <div className={`
+                                relative w-full sm:w-auto sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 pointer-events-auto animate-slide-up
+                                ${theme.bg} ${theme.text} border-t sm:border border-gray-500/20
+                            `}>
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 rounded-full bg-blue-100 text-blue-600 shrink-0">
+                                        <RotateCcw size={24} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-lg font-bold mb-1">이어보시겠습니까?</h3>
+                                        <p className="text-sm opacity-80 mb-3">마지막으로 읽던 기록이 있습니다.</p>
+                                        <div className={`p-3 rounded-lg text-sm mb-4 border ${themeKey === 'dark' || themeKey === 'black' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'}`}>
+                                            <div className="font-bold opacity-90 truncate">{lastReadData.novelTitle}</div>
+                                            <div className="opacity-70 truncate mt-1">{lastReadData.chapterTitle}</div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <button 
+                                                onClick={() => setShowResumeModal(false)} 
+                                                className={`flex-1 py-3 rounded-lg font-medium text-sm transition-colors ${themeKey === 'dark' || themeKey === 'black' ? 'bg-white/10 hover:bg-white/20' : 'bg-black/5 hover:bg-black/10'}`}
+                                            >
+                                                아니오
+                                            </button>
+                                            <button 
+                                                onClick={handleResume} 
+                                                className="flex-1 py-3 rounded-lg font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
+                                            >
+                                                네, 이어볼게요
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 사이드바 */}
                     {view === 'reader' && (
                         <>
-                            {/* 모바일 오버레이 */}
                             {sidebarOpen && (
                                 <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)}></div>
                             )}
