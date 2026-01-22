@@ -21,7 +21,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        body { margin: 0; padding: 0; touch-action: pan-y; }
+        /* 기본 설정 + 불법 복제 방지 (드래그/선택 불가) */
+        body { 
+            margin: 0; 
+            padding: 0; 
+            touch-action: pan-y;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
@@ -167,6 +177,46 @@
 
             const isPreviewEnv = window.location.protocol === 'blob:' || window.location.hostname === '';
 
+            // 0. 보안 설정 (복제 방지)
+            useEffect(() => {
+                const preventDefault = (e) => e.preventDefault();
+
+                // 우클릭 방지
+                document.addEventListener('contextmenu', preventDefault);
+                // 복사, 잘라내기, 붙여넣기 방지
+                document.addEventListener('copy', preventDefault);
+                document.addEventListener('cut', preventDefault);
+                document.addEventListener('paste', preventDefault);
+                // 드래그 시작 방지 (이미지 저장 등 방지)
+                document.addEventListener('dragstart', preventDefault);
+                // 선택 시작 방지 (텍스트 블록 지정 방지)
+                document.addEventListener('selectstart', preventDefault);
+
+                // 개발자 도구 및 소스 보기 등 단축키 차단
+                const handleKeyDown = (e) => {
+                    if (
+                        e.key === 'F12' || 
+                        (e.ctrlKey && (e.key === 'u' || e.key === 'U')) || // 소스 보기
+                        (e.ctrlKey && (e.key === 's' || e.key === 'S')) || // 저장
+                        (e.ctrlKey && (e.key === 'p' || e.key === 'P')) || // 인쇄
+                        (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I' || e.key === 'c' || e.key === 'C' || e.key === 'j' || e.key === 'J')) // 개발자 도구
+                    ) {
+                        e.preventDefault();
+                    }
+                };
+                document.addEventListener('keydown', handleKeyDown);
+
+                return () => {
+                    document.removeEventListener('contextmenu', preventDefault);
+                    document.removeEventListener('copy', preventDefault);
+                    document.removeEventListener('cut', preventDefault);
+                    document.removeEventListener('paste', preventDefault);
+                    document.removeEventListener('dragstart', preventDefault);
+                    document.removeEventListener('selectstart', preventDefault);
+                    document.removeEventListener('keydown', handleKeyDown);
+                };
+            }, []);
+
             // 1. 초기 로드
             useEffect(() => {
                 fetchNovelList();
@@ -226,10 +276,10 @@
             // 더블클릭
             const handleDoubleClick = (e) => {
                 if (!gestureEnabled) return;
-                // PC에서 더블클릭 시 텍스트가 자동 선택되는 경우가 많아 
-                // 기존의 window.getSelection() 체크는 PC 더블클릭 네비게이션을 방해합니다.
-                // 따라서 더블클릭 시에는 텍스트 선택 여부를 무시하고 페이지 이동을 수행하도록 변경했습니다.
-                
+                // 보안 정책으로 텍스트 선택이 막혔으므로 selection 체크는 제거해도 무방하나, 
+                // 혹시 모를 상황을 대비해 그대로 둡니다. (CSS가 적용된 상태라면 항상 빈 값)
+                if (window.getSelection().toString().length > 0) return;
+
                 const width = window.innerWidth;
                 const clickX = e.clientX;
 
@@ -241,7 +291,6 @@
             const handlePointerDown = (e) => {
                 if (!gestureEnabled) return;
                 
-                // 터치 이벤트와 마우스 이벤트의 좌표 추출 방식 통일
                 let clientX, clientY;
                 if (e.touches && e.touches.length > 0) {
                     clientX = e.touches[0].clientX;
@@ -259,9 +308,6 @@
             // 드래그/터치 종료
             const handlePointerUp = (e) => {
                 if (!gestureEnabled) return;
-                
-                // 드래그의 경우(스와이프), 텍스트 선택 의도와 페이지 이동 의도를 구분하기 위해
-                // 텍스트가 선택된 상태라면 네비게이션을 막는 로직을 유지합니다.
                 if (window.getSelection().toString().length > 0) return;
 
                 let clientX, clientY;
@@ -278,14 +324,13 @@
                 const diffX = clientX - dragStartRef.current.x;
                 const diffY = clientY - dragStartRef.current.y;
 
-                // 스크롤 오작동 방지 (세로 움직임이 더 크거나 30px 이상이면 무시)
+                // 스크롤 오작동 방지
                 if (Math.abs(diffY) > Math.abs(diffX)) return;
                 if (Math.abs(diffY) > 30) return;
 
-                // 가로 이동 50px 이상일 때만 동작
                 if (Math.abs(diffX) > 50) {
-                    if (diffX > 0) handlePrev(); // 오른쪽으로 드래그 (이전)
-                    else handleNext(); // 왼쪽으로 드래그 (다음)
+                    if (diffX > 0) handlePrev(); 
+                    else handleNext(); 
                 }
             };
 
