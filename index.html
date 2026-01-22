@@ -1,0 +1,382 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Book, ChevronLeft, ChevronRight, Menu, Moon, Settings, Sun, Type, X, RefreshCw } from 'lucide-react';
+
+/**
+ * [사용자 설정 영역]
+ * 본인의 GitHub 저장소 정보를 여기에 입력하세요.
+ * * 1. owner: GitHub 아이디
+ * 2. repo: 저장소 이름
+ * 3. path: 소설 텍스트 파일들이 들어있는 폴더명 (이 이름이 소설 제목으로 표시됩니다)
+ */
+const GITHUB_CONFIG = {
+  owner: "username",      // 예: "hong-gildong"
+  repo: "my-webnovel",    // 예: "webnovel-viewer"
+  path: "나의 웹소설",     // 예: "chapters" 또는 "드래곤 라자" (폴더명이 제목이 됨)
+};
+
+// 챕터 데이터 타입 정의
+interface Chapter {
+  id: number;
+  title: string;
+  downloadUrl: string;
+  fileName: string;
+}
+
+// 테마 색상 정의
+const THEMES = {
+  light: { bg: 'bg-white', text: 'text-gray-900', ui: 'bg-gray-100' },
+  sepia: { bg: 'bg-[#f4ecd8]', text: 'text-[#5b4636]', ui: 'bg-[#e9dfc6]' },
+  dark: { bg: 'bg-[#1a1a1a]', text: 'text-gray-300', ui: 'bg-[#2a2a2a]' },
+};
+
+export default function WebNovelReader() {
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
+  const [content, setContent] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isListLoading, setIsListLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // 뷰어 설정 상태
+  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>('sepia');
+  const [fontSize, setFontSize] = useState(18);
+  const [lineHeight, setLineHeight] = useState(1.8);
+
+  const viewerRef = useRef<HTMLDivElement>(null);
+
+  // 1. GitHub API를 통해 파일 목록 가져오기 (초기 로드)
+  useEffect(() => {
+    const fetchChapterList = async () => {
+      setIsListLoading(true);
+      setErrorMsg(null);
+
+      // 미리보기 환경 감지
+      const isPreviewEnv = window.location.protocol === 'blob:' || window.location.hostname === '';
+
+      if (isPreviewEnv) {
+        // [미리보기용 가짜 데이터] 실제 GitHub API 호출 대신 작동 예시를 보여줍니다.
+        setTimeout(() => {
+          const demoChapters = [
+            { id: 1, title: "제1화 - 시작의 날", fileName: "1.시작의 날.txt", downloadUrl: "" },
+            { id: 2, title: "제2화 - 낯선 곳", fileName: "2.낯선 곳.txt", downloadUrl: "" },
+            { id: 3, title: "제3화 - 위기", fileName: "3.위기.txt", downloadUrl: "" },
+          ];
+          setChapters(demoChapters);
+          setIsListLoading(false);
+        }, 800);
+        return;
+      }
+
+      try {
+        const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          if (response.status === 404) throw new Error("저장소나 폴더를 찾을 수 없습니다. 설정을 확인해주세요.");
+          if (response.status === 403) throw new Error("API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.");
+          throw new Error("파일 목록을 불러오지 못했습니다.");
+        }
+
+        const data = await response.json();
+
+        // .txt 파일만 필터링하고 정렬 및 가공
+        const loadedChapters = data
+          .filter((file: any) => file.name.endsWith('.txt'))
+          .map((file: any) => {
+            // 파일명 파싱 (예: "1.시작의 날.txt" -> 번호: 1, 제목: "시작의 날")
+            const match = file.name.match(/^(\d+)[.\s_-]+(.+)\.txt$/);
+            const chapterNum = match ? parseInt(match[1]) : 0;
+            const chapterTitle = match ? match[2] : file.name.replace('.txt', '');
+            
+            return {
+              id: chapterNum,
+              title: match ? `제${chapterNum}화 - ${chapterTitle}` : chapterTitle,
+              downloadUrl: file.download_url,
+              fileName: file.name
+            };
+          })
+          .sort((a: Chapter, b: Chapter) => a.id - b.id); // 번호 순 정렬
+
+        if (loadedChapters.length === 0) {
+          throw new Error("폴더 안에 .txt 파일이 없습니다.");
+        }
+
+        setChapters(loadedChapters);
+      } catch (err: any) {
+        console.error(err);
+        setErrorMsg(err.message);
+      } finally {
+        setIsListLoading(false);
+      }
+    };
+
+    fetchChapterList();
+  }, []);
+
+  // 2. 챕터 선택 시 내용 가져오기
+  useEffect(() => {
+    const fetchChapterContent = async () => {
+      if (chapters.length === 0) return;
+
+      setIsLoading(true);
+      const chapter = chapters[currentChapterIndex];
+      
+      // 미리보기 환경 감지
+      const isPreviewEnv = window.location.protocol === 'blob:' || window.location.hostname === '';
+
+      try {
+        if (isPreviewEnv) {
+           await new Promise(resolve => setTimeout(resolve, 300));
+           // 데모 텍스트
+           setContent(`[시스템] 미리보기 모드입니다.\n\n현재 선택된 파일: ${chapter.fileName}\n\nGitHub Pages에 배포하고 설정을 완료하면 실제 파일 내용이 이곳에 표시됩니다.\n\n(파일명 규칙: "1.제목.txt" 형태로 파일을 저장하면 자동으로 인식합니다.)`);
+        } else {
+          // GitHub Raw 데이터 가져오기 (downloadUrl 사용)
+          const response = await fetch(chapter.downloadUrl);
+          if (!response.ok) throw new Error("내용 로드 실패");
+          const text = await response.text();
+          setContent(text);
+        }
+      } catch (error) {
+        setContent("내용을 불러오는데 실패했습니다.");
+      } finally {
+        setIsLoading(false);
+        if (viewerRef.current) viewerRef.current.scrollTop = 0;
+        if (window.innerWidth < 768) setSidebarOpen(false);
+      }
+    };
+
+    fetchChapterContent();
+  }, [currentChapterIndex, chapters]);
+
+  const handlePrev = () => {
+    if (currentChapterIndex > 0) setCurrentChapterIndex(prev => prev - 1);
+  };
+
+  const handleNext = () => {
+    if (currentChapterIndex < chapters.length - 1) setCurrentChapterIndex(prev => prev + 1);
+  };
+
+  const currentTheme = THEMES[theme];
+
+  // 폴더명을 제목으로 사용 (특수문자 제거 및 공백 처리)
+  const displayTitle = decodeURIComponent(GITHUB_CONFIG.path).replace(/[-_]/g, ' ');
+
+  if (isListLoading) {
+    return (
+      <div className={`flex h-screen items-center justify-center ${THEMES[theme].bg} ${THEMES[theme].text}`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-current mx-auto mb-4 opacity-50"></div>
+          <p>소설 목록을 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className={`flex h-screen items-center justify-center ${THEMES[theme].bg} ${THEMES[theme].text}`}>
+        <div className="text-center max-w-md p-6 border border-red-300 rounded-lg bg-red-50 text-red-700">
+          <h3 className="font-bold text-lg mb-2">설정 오류</h3>
+          <p className="mb-4">{errorMsg}</p>
+          <p className="text-sm opacity-75">GITHUB_CONFIG 설정을 확인하거나, 폴더명을 확인해주세요.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex h-screen overflow-hidden ${currentTheme.bg} ${currentTheme.text} transition-colors duration-300 font-sans`}>
+      
+      {/* 사이드바 (목차) */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-r shadow-lg md:shadow-none flex flex-col`}>
+        <div className="p-4 border-b border-opacity-20 border-gray-500 flex justify-between items-center">
+          <h2 className="font-bold text-lg flex items-center gap-2">
+            <Book size={20} />
+            목차
+          </h2>
+          <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1 rounded hover:bg-black/10">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2">
+          {chapters.map((chapter, idx) => (
+            <button
+              key={chapter.id}
+              onClick={() => setCurrentChapterIndex(idx)}
+              className={`w-full text-left p-3 rounded-lg mb-1 transition-colors ${
+                currentChapterIndex === idx 
+                  ? (theme === 'dark' ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-700 font-bold')
+                  : 'hover:bg-black/5'
+              }`}
+            >
+              <span className="text-sm opacity-70 block">#{chapter.id}</span>
+              <span className="truncate">{chapter.title}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex-1 flex flex-col h-full relative">
+        
+        {/* 상단 헤더 */}
+        <header className={`h-14 flex items-center justify-between px-4 border-b border-opacity-10 border-black sticky top-0 z-10 ${currentTheme.ui}`}>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 rounded hover:bg-black/10">
+              <Menu size={20} />
+            </button>
+            <h1 className="font-bold text-lg truncate max-w-[200px] sm:max-w-md">
+              {displayTitle}
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setSettingsOpen(!settingsOpen)} 
+              className={`p-2 rounded-full transition-colors ${settingsOpen ? 'bg-black/10' : 'hover:bg-black/5'}`}
+              title="설정"
+            >
+              <Settings size={20} />
+            </button>
+          </div>
+
+          {/* 설정 팝업 */}
+          {settingsOpen && (
+            <div className={`absolute top-16 right-4 w-72 p-4 rounded-xl shadow-2xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} z-50`}>
+              <div className="space-y-4">
+                {/* 테마 설정 */}
+                <div>
+                  <label className="text-xs font-bold opacity-60 mb-2 block uppercase">테마</label>
+                  <div className="flex gap-2 bg-black/5 p-1 rounded-lg">
+                    <button 
+                      onClick={() => setTheme('light')} 
+                      className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'light' ? 'bg-white shadow-sm text-black' : 'hover:bg-black/5'}`}
+                    >
+                      <Sun size={18} />
+                    </button>
+                    <button 
+                      onClick={() => setTheme('sepia')} 
+                      className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'sepia' ? 'bg-[#f4ecd8] shadow-sm text-[#5b4636]' : 'hover:bg-black/5'}`}
+                    >
+                      <Book size={18} />
+                    </button>
+                    <button 
+                      onClick={() => setTheme('dark')} 
+                      className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'dark' ? 'bg-gray-700 shadow-sm text-white' : 'hover:bg-black/5'}`}
+                    >
+                      <Moon size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 글자 크기 설정 */}
+                <div>
+                  <label className="text-xs font-bold opacity-60 mb-2 block uppercase flex items-center gap-2">
+                    <Type size={14} /> 글자 크기: {fontSize}px
+                  </label>
+                  <input 
+                    type="range" 
+                    min="14" 
+                    max="28" 
+                    step="1"
+                    value={fontSize} 
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full accent-blue-500 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+
+                {/* 줄 간격 설정 */}
+                <div>
+                  <label className="text-xs font-bold opacity-60 mb-2 block uppercase">줄 간격</label>
+                  <div className="flex gap-2">
+                    {[1.6, 1.8, 2.2].map((lh) => (
+                      <button
+                        key={lh}
+                        onClick={() => setLineHeight(lh)}
+                        className={`flex-1 py-1 text-sm rounded border ${lineHeight === lh ? 'border-blue-500 text-blue-500 bg-blue-50' : 'border-gray-300 opacity-70'}`}
+                      >
+                        {lh}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </header>
+
+        {/* 텍스트 뷰어 영역 */}
+        <main 
+          ref={viewerRef}
+          className="flex-1 overflow-y-auto relative scroll-smooth"
+        >
+          <div className="max-w-3xl mx-auto px-6 py-10 md:py-16 min-h-full flex flex-col">
+            <div className="mb-8 pb-4 border-b border-opacity-10 border-black text-center">
+              <span className="text-sm opacity-60 mb-2 block">
+                {/* 챕터 번호 표시 */}
+                {chapters.length > 0 && `#${chapters[currentChapterIndex].id}`}
+              </span>
+              <h2 className="text-2xl md:text-3xl font-bold">
+                {/* 챕터 제목 표시 */}
+                {chapters.length > 0 && chapters[currentChapterIndex].title}
+              </h2>
+            </div>
+
+            {isLoading ? (
+              <div className="flex-1 flex justify-center items-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-current opacity-50"></div>
+              </div>
+            ) : (
+              <div 
+                className="prose max-w-none whitespace-pre-wrap leading-relaxed outline-none"
+                style={{ 
+                  fontSize: `${fontSize}px`,
+                  lineHeight: lineHeight,
+                }}
+              >
+                {/* 텍스트 내용 */}
+                {content}
+              </div>
+            )}
+            
+            {/* 하단 네비게이션 */}
+            <div className="mt-16 pt-8 border-t border-opacity-10 border-black flex justify-between items-center">
+              <button 
+                onClick={handlePrev}
+                disabled={currentChapterIndex === 0}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${currentChapterIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/5'}`}
+              >
+                <ChevronLeft size={20} />
+                <span className="hidden sm:inline">이전 화</span>
+              </button>
+              
+              <span className="text-sm opacity-60">
+                {currentChapterIndex + 1} / {chapters.length}
+              </span>
+
+              <button 
+                onClick={handleNext}
+                disabled={currentChapterIndex === chapters.length - 1}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${currentChapterIndex === chapters.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/5'}`}
+              >
+                <span className="hidden sm:inline">다음 화</span>
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
+        </main>
+
+        {/* 오버레이 (사이드바 열렸을 때 배경) */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          ></div>
+        )}
+      </div>
+    </div>
+  );
+}
