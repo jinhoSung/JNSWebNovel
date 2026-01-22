@@ -56,26 +56,11 @@
         }
 
         /* [커스텀 스크롤바 스타일] */
-        /* Webkit (Chrome, Safari, Edge) */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--scrollbar-track, #f1f1f1); 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--scrollbar-thumb, #888); 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--scrollbar-thumb-hover, #555); 
-        }
-        /* Firefox */
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-track, #f1f1f1); }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb, #888); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover, #555); }
+        * { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
     </style>
 </head>
 <body>
@@ -119,7 +104,7 @@
         const Maximize = (props) => <Icon {...props} path={<><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></>} />;
         const Minimize = (props) => <Icon {...props} path={<><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></>} />;
 
-        // 테마 설정 (스크롤바 색상 추가)
+        // 테마 설정 (스크롤바 색상 포함)
         const THEMES = {
             light: { 
                 id: 'light', name: '라이트', bg: 'bg-white', text: 'text-gray-900', ui: 'bg-gray-50', card: 'bg-white border-gray-200', activeItem: 'bg-blue-100 text-blue-700',
@@ -143,7 +128,6 @@
             },
         };
 
-        // 폰트 설정
         const FONTS = {
             sans: { name: '고딕(Sans)', class: 'font-sans-kr' },
             serif: { name: '명조(Serif)', class: 'font-serif-kr' },
@@ -156,22 +140,15 @@
                 try {
                     const item = window.localStorage.getItem(key);
                     return item ? JSON.parse(item) : initialValue;
-                } catch (error) {
-                    console.log(error);
-                    return initialValue;
-                }
+                } catch (error) { return initialValue; }
             });
-
             const setValue = (value) => {
                 try {
                     const valueToStore = value instanceof Function ? value(storedValue) : value;
                     setStoredValue(valueToStore);
                     window.localStorage.setItem(key, JSON.stringify(valueToStore));
-                } catch (error) {
-                    console.log(error);
-                }
+                } catch (error) {}
             };
-
             return [storedValue, setValue];
         }
 
@@ -193,14 +170,14 @@
             const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(true);
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [helpOpen, setHelpOpen] = useState(false);
-            const [isFullScreen, setIsFullScreen] = useState(false); // 전체화면 상태
+            const [isFullScreen, setIsFullScreen] = useState(false);
             
-            // 이어보기 및 진행률 상태
+            // 이어보기 / 진행률
             const [lastReadData, setLastReadData] = useState(null);
             const [showResumeModal, setShowResumeModal] = useState(false);
             const [scrollProgress, setScrollProgress] = useState(0);
 
-            // 설정 상태 (LocalStorage 연동)
+            // 설정
             const [themeKey, setThemeKey] = useLocalStorage('jinos_theme', 'sepia');
             const [fontSize, setFontSize] = useLocalStorage('jinos_fontsize', 18);
             const [lineHeight, setLineHeight] = useLocalStorage('jinos_lineheight', 1.8);
@@ -215,10 +192,9 @@
 
             const isPreviewEnv = window.location.protocol === 'blob:' || window.location.hostname === '';
 
-            // 0. 보안 설정 (복제 방지)
+            // 0. 보안 설정 (복제 방지) & 전체화면 상태 감지
             useEffect(() => {
                 const preventDefault = (e) => e.preventDefault();
-
                 document.addEventListener('contextmenu', preventDefault);
                 document.addEventListener('copy', preventDefault);
                 document.addEventListener('cut', preventDefault);
@@ -232,12 +208,13 @@
                         (e.ctrlKey && (e.key === 'u' || e.key === 'U')) || 
                         (e.ctrlKey && (e.key === 's' || e.key === 'S')) || 
                         (e.ctrlKey && (e.key === 'p' || e.key === 'P')) || 
-                        (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I' || e.key === 'c' || e.key === 'C' || e.key === 'j' || e.key === 'J'))
-                    ) {
-                        e.preventDefault();
-                    }
+                        (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I' || e.key === 'c' || e.key === 'C'))
+                    ) { e.preventDefault(); }
                 };
                 document.addEventListener('keydown', handleKeyDown);
+
+                const handleFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
+                document.addEventListener('fullscreenchange', handleFullScreenChange);
 
                 return () => {
                     document.removeEventListener('contextmenu', preventDefault);
@@ -247,16 +224,8 @@
                     document.removeEventListener('dragstart', preventDefault);
                     document.removeEventListener('selectstart', preventDefault);
                     document.removeEventListener('keydown', handleKeyDown);
+                    document.removeEventListener('fullscreenchange', handleFullScreenChange);
                 };
-            }, []);
-
-            // 0-1. 전체화면 상태 동기화
-            useEffect(() => {
-                const handleFullScreenChange = () => {
-                    setIsFullScreen(!!document.fullscreenElement);
-                };
-                document.addEventListener('fullscreenchange', handleFullScreenChange);
-                return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
             }, []);
 
             // 1. 초기 로드
@@ -271,7 +240,7 @@
                             setShowResumeModal(true);
                         }
                     }
-                } catch (e) { console.error(e); }
+                } catch (e) {}
             }, []);
 
             // 2. 자동 저장
@@ -291,7 +260,7 @@
                 }
             }, [currentChapterIndex, view, currentNovel, chapters]);
 
-            // 스크롤 리스너
+            // 스크롤 감지
             useEffect(() => {
                 const handleScroll = () => {
                     if (viewerRef.current) {
@@ -311,65 +280,45 @@
                 return () => { if (viewerElement) viewerElement.removeEventListener('scroll', handleScroll); };
             }, [content, view]);
 
-            // 제스처 및 더블클릭 로직
+            // 제스처 (더블클릭/드래그)
             const handleDoubleClick = (e) => {
                 if (!gestureEnabled) return;
-                if (window.getSelection().toString().length > 0) return;
                 const width = window.innerWidth;
-                const clickX = e.clientX;
-                if (clickX < width / 2) handlePrev();
-                else handleNext();
+                if (e.clientX < width / 2) handlePrev(); else handleNext();
             };
 
             const handlePointerDown = (e) => {
                 if (!gestureEnabled) return;
                 let clientX, clientY;
-                if (e.touches && e.touches.length > 0) {
-                    clientX = e.touches[0].clientX;
-                    clientY = e.touches[0].clientY;
-                } else {
-                    clientX = e.clientX;
-                    clientY = e.clientY;
-                }
+                if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+                else { clientX = e.clientX; clientY = e.clientY; }
                 if (clientX === undefined) return;
                 dragStartRef.current = { x: clientX, y: clientY };
             };
 
             const handlePointerUp = (e) => {
                 if (!gestureEnabled) return;
-                if (window.getSelection().toString().length > 0) return;
+                if (window.getSelection().toString().length > 0) return; // 드래그는 선택과 구분
                 let clientX, clientY;
-                if (e.changedTouches && e.changedTouches.length > 0) {
-                    clientX = e.changedTouches[0].clientX;
-                    clientY = e.changedTouches[0].clientY;
-                } else {
-                    clientX = e.clientX;
-                    clientY = e.clientY;
-                }
+                if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; }
+                else { clientX = e.clientX; clientY = e.clientY; }
                 if (clientX === undefined) return;
+                
                 const diffX = clientX - dragStartRef.current.x;
                 const diffY = clientY - dragStartRef.current.y;
-                if (Math.abs(diffY) > Math.abs(diffX)) return;
-                if (Math.abs(diffY) > 30) return;
-                if (Math.abs(diffX) > 50) {
-                    if (diffX > 0) handlePrev(); 
-                    else handleNext(); 
-                }
+                if (Math.abs(diffY) > Math.abs(diffX) || Math.abs(diffY) > 30) return;
+                if (Math.abs(diffX) > 50) { if (diffX > 0) handlePrev(); else handleNext(); }
             };
 
-            // 전체화면 토글 함수
             const toggleFullScreen = () => {
                 if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-                    });
+                    document.documentElement.requestFullscreen().catch(err => console.log(err));
                 } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    }
+                    if (document.exitFullscreen) document.exitFullscreen();
                 }
             };
 
+            // 데이터 Fetch
             const fetchNovelList = async () => {
                 setIsGlobalLoading(true);
                 setErrorMsg(null);
@@ -410,11 +359,7 @@
 
                 if (isPreviewEnv) {
                     setTimeout(() => {
-                        const demoChapters = [
-                            { id: 1, title: "제1화 - 시작", fileName: "1.시작.txt", downloadUrl: "" },
-                            { id: 2, title: "제2화 - 모험", fileName: "2.모험.txt", downloadUrl: "" },
-                            { id: 3, title: "제3화 - 귀환", fileName: "3.귀환.txt", downloadUrl: "" },
-                        ];
+                        const demoChapters = [ { id: 1, title: "제1화 - 시작", fileName: "1.시작.txt", downloadUrl: "" }, { id: 2, title: "제2화 - 모험", fileName: "2.모험.txt", downloadUrl: "" } ];
                         setChapters(demoChapters);
                         setCurrentChapterIndex(targetIndex);
                         setIsLoading(false);
@@ -435,54 +380,47 @@
                         return { id: chapterNum, title: `제${chapterNum}화 - ${chapterTitle}`, downloadUrl: file.download_url, fileName: file.name };
                     }).sort((a, b) => a.id - b.id);
                     setChapters(loadedChapters);
-                    if (targetIndex >= 0 && targetIndex < loadedChapters.length) setCurrentChapterIndex(targetIndex);
-                    else setCurrentChapterIndex(0);
+                    if (targetIndex >= 0 && targetIndex < loadedChapters.length) setCurrentChapterIndex(targetIndex); else setCurrentChapterIndex(0);
                 } catch (error) { alert("오류: " + error.message); } finally { setIsLoading(false); }
             };
 
             const handleResume = () => {
                 setShowResumeModal(false);
-                if (lastReadData) {
-                    selectNovel({ id: lastReadData.novelId, title: lastReadData.novelTitle, path: lastReadData.novelPath }, lastReadData.chapterIndex);
+                if (lastReadData) selectNovel({ id: lastReadData.novelId, title: lastReadData.novelTitle, path: lastReadData.novelPath }, lastReadData.chapterIndex);
+            };
+
+            const fetchChapterContent = async () => {
+                if (view !== 'reader' || chapters.length === 0) return;
+                setIsLoading(true);
+                const chapter = chapters[currentChapterIndex];
+                try {
+                    if (isPreviewEnv) {
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        setContent(`[시스템] 미리보기 모드입니다.\n\n${chapter.title}`);
+                    } else {
+                        const response = await fetch(chapter.downloadUrl);
+                        if (!response.ok) throw new Error("내용 로드 실패");
+                        const text = await response.text();
+                        setContent(text);
+                    }
+                } catch (error) { setContent("내용 로드 실패"); } finally {
+                    setIsLoading(false);
+                    setScrollProgress(0);
+                    if (viewerRef.current) viewerRef.current.scrollTop = 0;
+                    if (window.innerWidth < 768) setSidebarOpen(false);
                 }
             };
 
-            // 챕터 로드
+            // 챕터 변경 감지
             useEffect(() => {
-                const fetchChapterContent = async () => {
-                    if (view !== 'reader' || chapters.length === 0) return;
-                    setIsLoading(true);
-                    const chapter = chapters[currentChapterIndex];
-                    try {
-                        if (isPreviewEnv) {
-                            await new Promise(resolve => setTimeout(resolve, 300));
-                            setContent(`[시스템] 미리보기 모드입니다.\n\n선택된 챕터: ${chapter.title}`);
-                        } else {
-                            const response = await fetch(chapter.downloadUrl);
-                            if (!response.ok) throw new Error("내용 로드 실패");
-                            const text = await response.text();
-                            setContent(text);
-                        }
-                    } catch (error) { setContent("내용 로드 실패"); } finally {
-                        setIsLoading(false);
-                        setScrollProgress(0);
-                        if (viewerRef.current) viewerRef.current.scrollTop = 0;
-                        if (window.innerWidth < 768) setSidebarOpen(false);
-                    }
-                };
                 fetchChapterContent();
             }, [currentChapterIndex, chapters, view]);
 
             const handlePrev = () => { if (currentChapterIndex > 0) setCurrentChapterIndex(prev => prev - 1); };
             const handleNext = () => { if (currentChapterIndex < chapters.length - 1) setCurrentChapterIndex(prev => prev + 1); };
-            const toggleSidebar = () => {
-                if (window.innerWidth >= 768) setDesktopSidebarVisible(!desktopSidebarVisible);
-                else setSidebarOpen(!sidebarOpen);
-            };
+            const toggleSidebar = () => { if (window.innerWidth >= 768) setDesktopSidebarVisible(!desktopSidebarVisible); else setSidebarOpen(!sidebarOpen); };
 
-            // --------------------------------------------------------------------------------
             // 렌더링
-            // --------------------------------------------------------------------------------
             if (errorMsg) return (
                 <div className={`flex h-screen flex-col items-center justify-center p-4 ${theme.bg} ${theme.text} ${font.class}`}>
                     <div className="max-w-md w-full p-6 border border-red-300 rounded-lg bg-red-50 text-red-700 shadow-lg">
@@ -504,11 +442,7 @@
             return (
                 <div 
                     className={`flex h-screen overflow-hidden ${theme.bg} ${theme.text} ${font.class} transition-colors duration-300`}
-                    style={{
-                        '--scrollbar-thumb': theme.scrollbarThumb,
-                        '--scrollbar-track': theme.scrollbarTrack,
-                        '--scrollbar-thumb-hover': theme.scrollbarThumbHover
-                    }}
+                    style={{ '--scrollbar-thumb': theme.scrollbarThumb, '--scrollbar-track': theme.scrollbarTrack, '--scrollbar-thumb-hover': theme.scrollbarThumbHover }}
                 >
                     
                     {/* 이어보기 모달 */}
@@ -544,164 +478,4 @@
                                     <button onClick={() => setView('list')} className="w-full flex items-center gap-2 p-2 rounded hover:bg-black/5 text-sm font-bold opacity-70"><Home size={16} /> 서재로 돌아가기</button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-2 w-full">
-                                    {chapters.map((chapter, idx) => (
-                                        <button key={chapter.id} onClick={() => setCurrentChapterIndex(idx)} className={`w-full text-left p-3 rounded-lg mb-1 transition-colors text-sm ${currentChapterIndex === idx ? theme.activeItem : 'hover:bg-black/5 opacity-80 hover:opacity-100'}`}>
-                                            <span className="text-xs opacity-60 block mb-0.5">#{idx + 1}</span>
-                                            <span className="block font-medium truncate">{chapter.title}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {/* 메인 콘텐츠 */}
-                    <div className="flex-1 flex flex-col h-full relative min-w-0">
-                        <header className={`h-16 flex items-center justify-between px-4 border-b border-black/10 sticky top-0 z-20 ${theme.ui}`}>
-                            <div className="flex items-center gap-3 overflow-hidden">
-                                {view === 'reader' && <button onClick={toggleSidebar} className="p-2 rounded hover:bg-black/10 shrink-0"><Menu size={20} /></button>}
-                                <h1 className="font-bold text-lg truncate">
-                                    {view === 'list' ? 'Jinos 웹소설' : <span className="flex flex-col md:block"><span className="md:hidden text-xs opacity-70">{currentNovel?.title}</span><span>{chapters[currentChapterIndex]?.title || currentNovel?.title}</span></span>}
-                                </h1>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                                {view === 'reader' && <div className="text-xs font-mono opacity-50 mr-2 min-w-[3ch] text-right">{scrollProgress}%</div>}
-                                
-                                {/* 전체화면 버튼 */}
-                                <button onClick={toggleFullScreen} className="p-2 rounded-full hover:bg-black/5 text-gray-500 transition-colors" title={isFullScreen ? "전체화면 종료" : "전체화면"}>
-                                    {isFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
-                                </button>
-
-                                {view === 'list' && <button onClick={() => setHelpOpen(true)} className="p-2 rounded-full hover:bg-black/5 text-gray-500"><HelpCircle size={20} /></button>}
-                                <button onClick={() => setSettingsOpen(!settingsOpen)} className={`p-2 rounded-full transition-colors ${settingsOpen ? 'bg-black/10' : 'hover:bg-black/5'}`}><Settings size={20} /></button>
-                            </div>
-
-                            {/* 설정 팝업 */}
-                            {settingsOpen && (
-                                <div className={`absolute top-16 right-2 w-80 max-w-[95vw] p-5 rounded-xl shadow-2xl border ${theme.card} z-50 text-sm`}>
-                                    <div className="space-y-5">
-                                        <div>
-                                            <label className="text-xs font-bold opacity-60 mb-2 block uppercase">테마</label>
-                                            <div className="grid grid-cols-5 gap-1 bg-black/5 p-1 rounded-lg">
-                                                {Object.values(THEMES).map((t) => (
-                                                    <button key={t.id} onClick={() => setThemeKey(t.id)} className={`h-8 rounded flex items-center justify-center ${themeKey === t.id ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:opacity-80'}`} style={{ backgroundColor: t.id === 'light' ? '#fff' : t.id === 'sepia' ? '#f4ecd8' : t.id === 'green' ? '#e0f2f1' : t.id === 'dark' ? '#2a2a2a' : '#000' }}>
-                                                        {themeKey === t.id && <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold opacity-60 mb-2 block uppercase">폰트 종류</label>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {Object.entries(FONTS).map(([key, f]) => (
-                                                    <button key={key} onClick={() => setFontFamilyKey(key)} className={`py-2 px-1 rounded border text-xs ${fontFamilyKey === key ? 'border-blue-500 bg-blue-50 text-blue-700 font-bold' : 'border-gray-300 opacity-70 hover:opacity-100'}`}>{f.name.split('(')[0]}</button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold opacity-60 mb-2 block uppercase flex justify-between"><span>글자 크기</span><span>{fontSize}px</span></label>
-                                            <input type="range" min="12" max="32" step="1" value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} className="w-full accent-blue-500 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold opacity-60 mb-2 block uppercase">줄 간격</label>
-                                            <div className="flex gap-2 bg-black/5 p-1 rounded-lg">
-                                                {[1.4, 1.6, 1.8, 2.0, 2.4].map((lh) => (
-                                                    <button key={lh} onClick={() => setLineHeight(lh)} className={`flex-1 py-1 rounded text-xs ${lineHeight === lh ? 'bg-white shadow text-black font-bold' : 'hover:bg-black/5 opacity-60'}`}>{lh}</button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        
-                                        {/* 제스처 설정 토글 */}
-                                        <div className="pt-2 border-t border-gray-500/20">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <MousePointerClick size={16} className="opacity-60" />
-                                                    <span className="font-bold opacity-80">제스처/더블클릭 이동</span>
-                                                </div>
-                                                <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                                    <input type="checkbox" name="toggle" id="gesture-toggle" className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={gestureEnabled} onChange={(e) => setGestureEnabled(e.target.checked)}/>
-                                                    <label htmlFor="gesture-toggle" className={`toggle-label block overflow-hidden h-5 rounded-full cursor-pointer ${gestureEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}></label>
-                                                </div>
-                                            </div>
-                                            <p className="text-[10px] opacity-50 mt-1 pl-6">
-                                                왼쪽/오른쪽 더블클릭 또는 드래그로 이전/다음 화 이동
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </header>
-
-                        <main 
-                            ref={viewerRef} 
-                            className="flex-1 overflow-y-auto relative scroll-smooth no-scrollbar select-text"
-                            onDoubleClick={handleDoubleClick}
-                            onMouseDown={handlePointerDown}
-                            onMouseUp={handlePointerUp}
-                            onTouchStart={handlePointerDown}
-                            onTouchEnd={handlePointerUp}
-                        >
-                            {view === 'list' && (
-                                <div className="max-w-6xl mx-auto p-4 md:p-8">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {novels.map((novel) => (
-                                            <button key={novel.id} onClick={() => selectNovel(novel)} className={`group flex flex-col text-left rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all transform hover:-translate-y-1 border ${theme.card}`}>
-                                                <div className={`h-48 w-full ${themeKey === 'black' ? 'bg-gray-900' : 'bg-gray-200'} relative overflow-hidden flex items-center justify-center`}>
-                                                    {novel.coverUrl ? <img src={novel.coverUrl} alt={novel.title} className="w-full h-full object-cover" /> : <img src={`./${novel.path}/cover.jpg`} alt={novel.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onError={(e) => { if (e.target.src.endsWith('cover.jpg')) e.target.src = `./${novel.path}/cover.png`; else { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; } }} />}
-                                                    <div className={`hidden absolute inset-0 items-center justify-center ${themeKey === 'black' ? 'text-gray-700' : 'text-gray-400'}`}><ImageIcon size={48} /></div>
-                                                </div>
-                                                <div className="p-4 flex-1 flex flex-col justify-center">
-                                                    <h3 className="font-bold text-lg mb-2 line-clamp-2">{novel.title}</h3>
-                                                    <span className="text-sm opacity-60 flex items-center gap-1"><Book size={14} /> 소설 읽기</span>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {view === 'reader' && (
-                                <div className="max-w-3xl mx-auto px-5 py-8 md:py-16 min-h-full flex flex-col">
-                                    <div className="mb-10 pb-6 border-b border-black/10 text-center select-none">
-                                        <span className="text-xs font-bold opacity-50 mb-2 block uppercase tracking-wider">Episode {chapters.length > 0 && chapters[currentChapterIndex].id}</span>
-                                        <h2 className="text-2xl md:text-3xl font-bold leading-tight">{chapters.length > 0 && chapters[currentChapterIndex].title}</h2>
-                                    </div>
-                                    {isLoading ? (
-                                        <div className="flex-1 flex justify-center items-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-current opacity-30"></div></div>
-                                    ) : (
-                                        <div className="prose max-w-none whitespace-pre-wrap outline-none text-justify" style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight }}>{content}</div>
-                                    )}
-                                    <div className="mt-20 pt-8 border-t border-black/10 flex justify-between items-center select-none">
-                                        <button onClick={handlePrev} disabled={currentChapterIndex === 0} className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${currentChapterIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/5 active:bg-black/10'}`}><ChevronLeft size={20} /><span className="hidden sm:inline font-medium">이전 화</span></button>
-                                        <span className="text-sm opacity-60 font-mono">{currentChapterIndex + 1} / {chapters.length}</span>
-                                        <button onClick={handleNext} disabled={currentChapterIndex === chapters.length - 1} className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${currentChapterIndex === chapters.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/5 active:bg-black/10'}`}><span className="hidden sm:inline font-medium">다음 화</span><ChevronRight size={20} /></button>
-                                    </div>
-                                </div>
-                            )}
-                        </main>
-                    </div>
-
-                    {helpOpen && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={() => setHelpOpen(false)}>
-                            <div className={`max-w-md w-full p-6 rounded-xl shadow-2xl relative ${theme.bg} ${theme.text}`} onClick={e => e.stopPropagation()}>
-                                <button onClick={() => setHelpOpen(false)} className="absolute top-4 right-4 opacity-50 hover:opacity-100"><XIcon size={24} /></button>
-                                <h3 className="text-xl font-bold mb-4">Jinos 웹소설 가이드</h3>
-                                <div className="space-y-4 text-sm opacity-80 leading-relaxed">
-                                    <p>GitHub Repository에 소설 파일을 올리면 자동으로 이곳에 표시됩니다.</p>
-                                    <ul className="list-disc pl-5 space-y-1">
-                                        <li><strong>제스처:</strong> 화면 왼쪽/오른쪽 더블클릭 또는 좌우 드래그로 회차 이동 가능</li>
-                                    </ul>
-                                </div>
-                                <div className="mt-6 text-center"><button onClick={() => setHelpOpen(false)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">닫기</button></div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<WebNovelReader />);
-    </script>
-</body>
-</html>
+                                    {chapters.map((chapter, idx)
