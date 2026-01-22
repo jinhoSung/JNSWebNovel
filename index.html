@@ -21,7 +21,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* 기본 설정 + 불법 복제 방지 (드래그/선택 불가) */
+        /* 기본 설정 + 불법 복제 방지 */
         body { 
             margin: 0; 
             padding: 0; 
@@ -32,8 +32,6 @@
             user-select: none;
             -webkit-touch-callout: none;
         }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         .font-sans-kr { font-family: 'Noto Sans KR', sans-serif; }
         .font-serif-kr { font-family: 'Noto Serif KR', serif; }
@@ -55,6 +53,28 @@
         }
         .toggle-checkbox:checked + .toggle-label {
             background-color: #3b82f6;
+        }
+
+        /* [커스텀 스크롤바 스타일] */
+        /* Webkit (Chrome, Safari, Edge) */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar-track, #f1f1f1); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb, #888); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbar-thumb-hover, #555); 
+        }
+        /* Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
         }
     </style>
 </head>
@@ -96,14 +116,31 @@
         const ImageIcon = (props) => <Icon {...props} path={<><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></>} />;
         const RotateCcw = (props) => <Icon {...props} path={<><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></>} />;
         const MousePointerClick = (props) => <Icon {...props} path={<><path d="m9 9 5 12 1.8-5.2L21 14Z"/><path d="M7.2 2.2 8 5.1"/><path d="m5.1 8-2.9-.8"/><path d="M14 4.1 12 6"/><path d="m6 12-1.9 2"/></>} />;
+        const Maximize = (props) => <Icon {...props} path={<><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></>} />;
+        const Minimize = (props) => <Icon {...props} path={<><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></>} />;
 
-        // 테마 설정
+        // 테마 설정 (스크롤바 색상 추가)
         const THEMES = {
-            light: { id: 'light', name: '라이트', bg: 'bg-white', text: 'text-gray-900', ui: 'bg-gray-50', card: 'bg-white border-gray-200', activeItem: 'bg-blue-100 text-blue-700' },
-            sepia: { id: 'sepia', name: '세피아', bg: 'bg-[#f4ecd8]', text: 'text-[#5b4636]', ui: 'bg-[#e9dfc6]', card: 'bg-[#fdf6e3] border-[#d3c5a3]', activeItem: 'bg-[#d3c5a3] text-[#4a3b2a]' },
-            green: { id: 'green', name: '눈보호', bg: 'bg-[#e0f2f1]', text: 'text-[#004d40]', ui: 'bg-[#b2dfdb]', card: 'bg-[#e0f2f1] border-[#80cbc4]', activeItem: 'bg-[#80cbc4] text-[#004d40]' },
-            dark: { id: 'dark', name: '다크', bg: 'bg-[#2a2a2a]', text: 'text-gray-300', ui: 'bg-[#1a1a1a]', card: 'bg-[#333] border-gray-700', activeItem: 'bg-[#404040] text-blue-300' },
-            black: { id: 'black', name: '블랙', bg: 'bg-black', text: 'text-gray-400', ui: 'bg-[#111]', card: 'bg-[#111] border-gray-800', activeItem: 'bg-[#222] text-white' },
+            light: { 
+                id: 'light', name: '라이트', bg: 'bg-white', text: 'text-gray-900', ui: 'bg-gray-50', card: 'bg-white border-gray-200', activeItem: 'bg-blue-100 text-blue-700',
+                scrollbarThumb: '#cbd5e1', scrollbarTrack: '#f1f5f9', scrollbarThumbHover: '#94a3b8' 
+            },
+            sepia: { 
+                id: 'sepia', name: '세피아', bg: 'bg-[#f4ecd8]', text: 'text-[#5b4636]', ui: 'bg-[#e9dfc6]', card: 'bg-[#fdf6e3] border-[#d3c5a3]', activeItem: 'bg-[#d3c5a3] text-[#4a3b2a]',
+                scrollbarThumb: '#d3c5a3', scrollbarTrack: '#f4ecd8', scrollbarThumbHover: '#a89b80'
+            },
+            green: { 
+                id: 'green', name: '눈보호', bg: 'bg-[#e0f2f1]', text: 'text-[#004d40]', ui: 'bg-[#b2dfdb]', card: 'bg-[#e0f2f1] border-[#80cbc4]', activeItem: 'bg-[#80cbc4] text-[#004d40]',
+                scrollbarThumb: '#80cbc4', scrollbarTrack: '#e0f2f1', scrollbarThumbHover: '#4db6ac'
+            },
+            dark: { 
+                id: 'dark', name: '다크', bg: 'bg-[#2a2a2a]', text: 'text-gray-300', ui: 'bg-[#1a1a1a]', card: 'bg-[#333] border-gray-700', activeItem: 'bg-[#404040] text-blue-300',
+                scrollbarThumb: '#4b5563', scrollbarTrack: '#2a2a2a', scrollbarThumbHover: '#6b7280'
+            },
+            black: { 
+                id: 'black', name: '블랙', bg: 'bg-black', text: 'text-gray-400', ui: 'bg-[#111]', card: 'bg-[#111] border-gray-800', activeItem: 'bg-[#222] text-white',
+                scrollbarThumb: '#333333', scrollbarTrack: '#000000', scrollbarThumbHover: '#555555'
+            },
         };
 
         // 폰트 설정
@@ -156,6 +193,7 @@
             const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(true);
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [helpOpen, setHelpOpen] = useState(false);
+            const [isFullScreen, setIsFullScreen] = useState(false); // 전체화면 상태
             
             // 이어보기 및 진행률 상태
             const [lastReadData, setLastReadData] = useState(null);
@@ -181,25 +219,20 @@
             useEffect(() => {
                 const preventDefault = (e) => e.preventDefault();
 
-                // 우클릭 방지
                 document.addEventListener('contextmenu', preventDefault);
-                // 복사, 잘라내기, 붙여넣기 방지
                 document.addEventListener('copy', preventDefault);
                 document.addEventListener('cut', preventDefault);
                 document.addEventListener('paste', preventDefault);
-                // 드래그 시작 방지 (이미지 저장 등 방지)
                 document.addEventListener('dragstart', preventDefault);
-                // 선택 시작 방지 (텍스트 블록 지정 방지)
                 document.addEventListener('selectstart', preventDefault);
 
-                // 개발자 도구 및 소스 보기 등 단축키 차단
                 const handleKeyDown = (e) => {
                     if (
                         e.key === 'F12' || 
-                        (e.ctrlKey && (e.key === 'u' || e.key === 'U')) || // 소스 보기
-                        (e.ctrlKey && (e.key === 's' || e.key === 'S')) || // 저장
-                        (e.ctrlKey && (e.key === 'p' || e.key === 'P')) || // 인쇄
-                        (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I' || e.key === 'c' || e.key === 'C' || e.key === 'j' || e.key === 'J')) // 개발자 도구
+                        (e.ctrlKey && (e.key === 'u' || e.key === 'U')) || 
+                        (e.ctrlKey && (e.key === 's' || e.key === 'S')) || 
+                        (e.ctrlKey && (e.key === 'p' || e.key === 'P')) || 
+                        (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I' || e.key === 'c' || e.key === 'C' || e.key === 'j' || e.key === 'J'))
                     ) {
                         e.preventDefault();
                     }
@@ -215,6 +248,15 @@
                     document.removeEventListener('selectstart', preventDefault);
                     document.removeEventListener('keydown', handleKeyDown);
                 };
+            }, []);
+
+            // 0-1. 전체화면 상태 동기화
+            useEffect(() => {
+                const handleFullScreenChange = () => {
+                    setIsFullScreen(!!document.fullscreenElement);
+                };
+                document.addEventListener('fullscreenchange', handleFullScreenChange);
+                return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
             }, []);
 
             // 1. 초기 로드
@@ -249,7 +291,7 @@
                 }
             }, [currentChapterIndex, view, currentNovel, chapters]);
 
-            // 스크롤 리스너 (진행률 표시)
+            // 스크롤 리스너
             useEffect(() => {
                 const handleScroll = () => {
                     if (viewerRef.current) {
@@ -269,28 +311,18 @@
                 return () => { if (viewerElement) viewerElement.removeEventListener('scroll', handleScroll); };
             }, [content, view]);
 
-            // ==========================================
-            // [제스처 및 더블클릭 로직]
-            // ==========================================
-
-            // 더블클릭
+            // 제스처 및 더블클릭 로직
             const handleDoubleClick = (e) => {
                 if (!gestureEnabled) return;
-                // 보안 정책으로 텍스트 선택이 막혔으므로 selection 체크는 제거해도 무방하나, 
-                // 혹시 모를 상황을 대비해 그대로 둡니다. (CSS가 적용된 상태라면 항상 빈 값)
                 if (window.getSelection().toString().length > 0) return;
-
                 const width = window.innerWidth;
                 const clickX = e.clientX;
-
                 if (clickX < width / 2) handlePrev();
                 else handleNext();
             };
 
-            // 드래그/터치 시작
             const handlePointerDown = (e) => {
                 if (!gestureEnabled) return;
-                
                 let clientX, clientY;
                 if (e.touches && e.touches.length > 0) {
                     clientX = e.touches[0].clientX;
@@ -299,17 +331,13 @@
                     clientX = e.clientX;
                     clientY = e.clientY;
                 }
-                
                 if (clientX === undefined) return;
-                
                 dragStartRef.current = { x: clientX, y: clientY };
             };
 
-            // 드래그/터치 종료
             const handlePointerUp = (e) => {
                 if (!gestureEnabled) return;
                 if (window.getSelection().toString().length > 0) return;
-
                 let clientX, clientY;
                 if (e.changedTouches && e.changedTouches.length > 0) {
                     clientX = e.changedTouches[0].clientX;
@@ -318,23 +346,30 @@
                     clientX = e.clientX;
                     clientY = e.clientY;
                 }
-                
                 if (clientX === undefined) return;
-
                 const diffX = clientX - dragStartRef.current.x;
                 const diffY = clientY - dragStartRef.current.y;
-
-                // 스크롤 오작동 방지
                 if (Math.abs(diffY) > Math.abs(diffX)) return;
                 if (Math.abs(diffY) > 30) return;
-
                 if (Math.abs(diffX) > 50) {
                     if (diffX > 0) handlePrev(); 
                     else handleNext(); 
                 }
             };
 
-            // 소설 목록 API
+            // 전체화면 토글 함수
+            const toggleFullScreen = () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    });
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            };
+
             const fetchNovelList = async () => {
                 setIsGlobalLoading(true);
                 setErrorMsg(null);
@@ -363,7 +398,6 @@
                 } catch (err) { setErrorMsg(err.message); } finally { setIsGlobalLoading(false); }
             };
 
-            // 소설 선택
             const selectNovel = async (novel, targetIndex = 0) => {
                 setCurrentNovel(novel);
                 setView('reader');
@@ -468,7 +502,14 @@
             );
 
             return (
-                <div className={`flex h-screen overflow-hidden ${theme.bg} ${theme.text} ${font.class} transition-colors duration-300`}>
+                <div 
+                    className={`flex h-screen overflow-hidden ${theme.bg} ${theme.text} ${font.class} transition-colors duration-300`}
+                    style={{
+                        '--scrollbar-thumb': theme.scrollbarThumb,
+                        '--scrollbar-track': theme.scrollbarTrack,
+                        '--scrollbar-thumb-hover': theme.scrollbarThumbHover
+                    }}
+                >
                     
                     {/* 이어보기 모달 */}
                     {showResumeModal && lastReadData && view === 'list' && (
@@ -525,6 +566,12 @@
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                                 {view === 'reader' && <div className="text-xs font-mono opacity-50 mr-2 min-w-[3ch] text-right">{scrollProgress}%</div>}
+                                
+                                {/* 전체화면 버튼 */}
+                                <button onClick={toggleFullScreen} className="p-2 rounded-full hover:bg-black/5 text-gray-500 transition-colors" title={isFullScreen ? "전체화면 종료" : "전체화면"}>
+                                    {isFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                                </button>
+
                                 {view === 'list' && <button onClick={() => setHelpOpen(true)} className="p-2 rounded-full hover:bg-black/5 text-gray-500"><HelpCircle size={20} /></button>}
                                 <button onClick={() => setSettingsOpen(!settingsOpen)} className={`p-2 rounded-full transition-colors ${settingsOpen ? 'bg-black/10' : 'hover:bg-black/5'}`}><Settings size={20} /></button>
                             </div>
