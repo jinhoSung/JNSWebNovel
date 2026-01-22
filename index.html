@@ -70,7 +70,7 @@
         const ImageIcon = (props) => <Icon {...props} path={<><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></>} />;
         const AlignLeft = (props) => <Icon {...props} path={<><line x1="21" x2="3" y1="6" y2="6"/><line x1="15" x2="3" y1="12" y2="12"/><line x1="17" x2="3" y1="18" y2="18"/></>} />;
 
-        // 테마 설정 (추가됨)
+        // 테마 설정
         const THEMES = {
             light: { id: 'light', name: '라이트', bg: 'bg-white', text: 'text-gray-900', ui: 'bg-gray-50', card: 'bg-white border-gray-200', activeItem: 'bg-blue-100 text-blue-700' },
             sepia: { id: 'sepia', name: '세피아', bg: 'bg-[#f4ecd8]', text: 'text-[#5b4636]', ui: 'bg-[#e9dfc6]', card: 'bg-[#fdf6e3] border-[#d3c5a3]', activeItem: 'bg-[#d3c5a3] text-[#4a3b2a]' },
@@ -79,7 +79,7 @@
             black: { id: 'black', name: '블랙', bg: 'bg-black', text: 'text-gray-400', ui: 'bg-[#111]', card: 'bg-[#111] border-gray-800', activeItem: 'bg-[#222] text-white' },
         };
 
-        // 폰트 설정 (추가됨)
+        // 폰트 설정
         const FONTS = {
             sans: { name: '고딕(Sans)', class: 'font-sans-kr' },
             serif: { name: '명조(Serif)', class: 'font-serif-kr' },
@@ -193,7 +193,7 @@
                 }
             };
 
-            // 2. 소설 선택
+            // 2. 소설 선택 (여기가 수정된 부분입니다)
             const selectNovel = async (novel) => {
                 setCurrentNovel(novel);
                 setView('reader');
@@ -226,16 +226,29 @@
                     const loadedChapters = data
                         .filter((file) => file.name.endsWith('.txt'))
                         .map((file) => {
-                            const numMatch = file.name.match(/(\d+)/);
+                            // 1. 확장자 제거
+                            let rawName = file.name.replace(/\.txt$/i, ''); 
+
+                            // 2. 대괄호 식별자 [TXT-001] 같은 것 제거
+                            rawName = rawName.replace(/\[.*?\]/g, '').trim();
+
+                            // 3. 숫자(회차) 추출
+                            const numMatch = rawName.match(/(\d+)/);
                             const chapterNum = numMatch ? parseInt(numMatch[0]) : 0;
-                            let chapterTitle = file.name.replace('.txt', '');
                             
+                            // 4. 제목 추출 (숫자 제거 + 특수문자 제거)
+                            let chapterTitle = rawName;
                             if (numMatch) {
                                 chapterTitle = chapterTitle.replace(numMatch[0], '')
-                                    .replace(/^[.\s_\[\]\(\)화장제-]+|[.\s_\[\]\(\)화장제-]+$/g, '')
+                                    .replace(/^[.\s_\[\]\(\)화장제-]+|[.\s_\[\]\(\)화장제-]+$/g, '') 
                                     .trim();
                             }
-                            if (!chapterTitle) chapterTitle = file.name.replace('.txt', '');
+
+                            // 5. 제목이 비어있으면 원본에서 특수문자만 뺀 것 사용
+                            if (!chapterTitle) {
+                                chapterTitle = rawName.replace(chapterNum, '').trim();
+                                if(!chapterTitle) chapterTitle = "제목 없음";
+                            }
                             
                             return {
                                 id: chapterNum,
