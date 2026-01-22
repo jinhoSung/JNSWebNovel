@@ -1,20 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Book, ChevronLeft, ChevronRight, Menu, Moon, Settings, Sun, Type, X, RefreshCw } from 'lucide-react';
+import { Book, ChevronLeft, ChevronRight, Menu, Moon, Settings, Sun, Type, X, HelpCircle, AlertCircle, Home, Image as ImageIcon } from 'lucide-react';
 
 /**
- * [사용자 설정 영역]
- * 본인의 GitHub 저장소 정보를 여기에 입력하세요.
- * * 1. owner: GitHub 아이디
- * 2. repo: 저장소 이름
- * 3. path: 소설 텍스트 파일들이 들어있는 폴더명 (이 이름이 소설 제목으로 표시됩니다)
+ * [사용자 설정 영역 - 배포 전 꼭 수정하세요!]
+ * GitHub Pages에서 이 소설 뷰어가 작동하려면 아래 정보를 본인의 저장소에 맞게 수정해야 합니다.
  */
 const GITHUB_CONFIG = {
-  owner: "username",      // 예: "hong-gildong"
-  repo: "my-webnovel",    // 예: "webnovel-viewer"
-  path: "나의 웹소설",     // 예: "chapters" 또는 "드래곤 라자" (폴더명이 제목이 됨)
+  owner: "jinhoSung",      // 1. GitHub 아이디 (예: "hong-gildong")
+  repo: "JNSWebNovel",    // 2. 저장소 이름 (예: "webnovel-viewer")
+  rootPath: "novels",     // 3. 소설 폴더들이 들어있는 최상위 폴더명 (예: "novels" 또는 "books")
+  branch: "main",         // 4. 브랜치 이름 (보통 "main" 또는 "master")
 };
 
-// 챕터 데이터 타입 정의
+// 타입 정의
+interface Novel {
+  id: string;
+  title: string;
+  path: string;
+  coverUrl?: string;
+}
+
 interface Chapter {
   id: number;
   title: string;
@@ -24,116 +29,176 @@ interface Chapter {
 
 // 테마 색상 정의
 const THEMES = {
-  light: { bg: 'bg-white', text: 'text-gray-900', ui: 'bg-gray-100' },
-  sepia: { bg: 'bg-[#f4ecd8]', text: 'text-[#5b4636]', ui: 'bg-[#e9dfc6]' },
-  dark: { bg: 'bg-[#1a1a1a]', text: 'text-gray-300', ui: 'bg-[#2a2a2a]' },
+  light: { bg: 'bg-white', text: 'text-gray-900', ui: 'bg-gray-100', card: 'bg-white border-gray-200' },
+  sepia: { bg: 'bg-[#f4ecd8]', text: 'text-[#5b4636]', ui: 'bg-[#e9dfc6]', card: 'bg-[#fdf6e3] border-[#d3c5a3]' },
+  dark: { bg: 'bg-[#1a1a1a]', text: 'text-gray-300', ui: 'bg-[#2a2a2a]', card: 'bg-[#2a2a2a] border-gray-700' },
 };
 
 export default function WebNovelReader() {
+  // 상태 관리
+  const [view, setView] = useState<'list' | 'reader'>('list'); // 'list': 소설 목록, 'reader': 챕터 읽기
+  const [novels, setNovels] = useState<Novel[]>([]);
+  const [currentNovel, setCurrentNovel] = useState<Novel | null>(null);
+  
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [content, setContent] = useState<string>("");
+  
   const [isLoading, setIsLoading] = useState(false);
-  const [isListLoading, setIsListLoading] = useState(true);
+  const [isGlobalLoading, setIsGlobalLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   
-  // 뷰어 설정 상태
+  // 뷰어 설정
   const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>('sepia');
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
 
   const viewerRef = useRef<HTMLDivElement>(null);
 
-  // 1. GitHub API를 통해 파일 목록 가져오기 (초기 로드)
+  // 환경 감지
+  const isPreviewEnv = typeof window !== 'undefined' && (window.location.protocol === 'blob:' || window.location.hostname === '');
+
+  // 1. 소설 목록 가져오기 (초기 로드)
   useEffect(() => {
-    const fetchChapterList = async () => {
-      setIsListLoading(true);
-      setErrorMsg(null);
-
-      // 미리보기 환경 감지
-      const isPreviewEnv = window.location.protocol === 'blob:' || window.location.hostname === '';
-
-      if (isPreviewEnv) {
-        // [미리보기용 가짜 데이터] 실제 GitHub API 호출 대신 작동 예시를 보여줍니다.
-        setTimeout(() => {
-          const demoChapters = [
-            { id: 1, title: "제1화 - 시작의 날", fileName: "1.시작의 날.txt", downloadUrl: "" },
-            { id: 2, title: "제2화 - 낯선 곳", fileName: "2.낯선 곳.txt", downloadUrl: "" },
-            { id: 3, title: "제3화 - 위기", fileName: "3.위기.txt", downloadUrl: "" },
-          ];
-          setChapters(demoChapters);
-          setIsListLoading(false);
-        }, 800);
-        return;
-      }
-
-      try {
-        const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) {
-          if (response.status === 404) throw new Error("저장소나 폴더를 찾을 수 없습니다. 설정을 확인해주세요.");
-          if (response.status === 403) throw new Error("API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.");
-          throw new Error("파일 목록을 불러오지 못했습니다.");
-        }
-
-        const data = await response.json();
-
-        // .txt 파일만 필터링하고 정렬 및 가공
-        const loadedChapters = data
-          .filter((file: any) => file.name.endsWith('.txt'))
-          .map((file: any) => {
-            // 파일명 파싱 (예: "1.시작의 날.txt" -> 번호: 1, 제목: "시작의 날")
-            const match = file.name.match(/^(\d+)[.\s_-]+(.+)\.txt$/);
-            const chapterNum = match ? parseInt(match[1]) : 0;
-            const chapterTitle = match ? match[2] : file.name.replace('.txt', '');
-            
-            return {
-              id: chapterNum,
-              title: match ? `제${chapterNum}화 - ${chapterTitle}` : chapterTitle,
-              downloadUrl: file.download_url,
-              fileName: file.name
-            };
-          })
-          .sort((a: Chapter, b: Chapter) => a.id - b.id); // 번호 순 정렬
-
-        if (loadedChapters.length === 0) {
-          throw new Error("폴더 안에 .txt 파일이 없습니다.");
-        }
-
-        setChapters(loadedChapters);
-      } catch (err: any) {
-        console.error(err);
-        setErrorMsg(err.message);
-      } finally {
-        setIsListLoading(false);
-      }
-    };
-
-    fetchChapterList();
+    fetchNovelList();
   }, []);
 
-  // 2. 챕터 선택 시 내용 가져오기
+  const fetchNovelList = async () => {
+    setIsGlobalLoading(true);
+    setErrorMsg(null);
+
+    if (isPreviewEnv) {
+      // [미리보기용 가짜 데이터]
+      setTimeout(() => {
+        setNovels([
+          { id: '1', title: "드래곤 라자", path: "novels/dragon_raja", coverUrl: "https://via.placeholder.com/150/8b4513/ffffff?text=Dragon" },
+          { id: '2', title: "나의 히어로 아카데미아", path: "novels/hero_aca", coverUrl: "" }, // 이미지 없음
+          { id: '3', title: "전지적 독자 시점", path: "novels/omniscient", coverUrl: "https://via.placeholder.com/150/000000/ffffff?text=ORV" },
+        ]);
+        setIsGlobalLoading(false);
+      }, 800);
+      return;
+    }
+
+    try {
+      // GitHub API로 rootPath 안의 폴더 목록을 가져옴
+      const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.rootPath}`;
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) {
+        if (response.status === 404) throw new Error(`'${GITHUB_CONFIG.rootPath}' 폴더를 찾을 수 없습니다.`);
+        throw new Error(`목록 로드 실패 (${response.status})`);
+      }
+
+      const data = await response.json();
+      if (!Array.isArray(data)) throw new Error("올바른 응답 형식이 아닙니다.");
+
+      // 폴더(dir)만 필터링하여 소설 목록으로 변환
+      const loadedNovels = await Promise.all(data
+        .filter((item: any) => item.type === 'dir')
+        .map(async (folder: any) => {
+          // 각 소설 폴더 안의 파일 목록을 확인하여 cover 이미지가 있는지 체크하는 것은 
+          // API 호출이 너무 많아지므로, Raw URL 추측 방식을 사용합니다.
+          // 사용자는 cover.jpg, cover.png, image.jpg 등을 넣어야 함.
+          
+          // GitHub Pages 호스팅 기준 이미지 경로 (상대 경로)
+          // 실제 API에서 이미지가 있는지 확인하지 않고, 렌더링 시 onError로 처리하거나
+          // 여기서는 폴더명만 가져옵니다.
+          
+          return {
+            id: folder.sha,
+            title: decodeURIComponent(folder.name).replace(/[-_]/g, ' '),
+            path: folder.path,
+            // 이미지 경로는 렌더링 시 동적으로 시도 (jpg, png 등)
+            // 여기서는 폴더 이름 자체를 저장
+          };
+        }));
+
+      if (loadedNovels.length === 0) {
+        throw new Error(`'${GITHUB_CONFIG.rootPath}' 폴더 안에 소설 폴더가 없습니다.`);
+      }
+
+      setNovels(loadedNovels);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.message);
+    } finally {
+      setIsGlobalLoading(false);
+    }
+  };
+
+  // 2. 소설 선택 시 챕터 목록 가져오기
+  const selectNovel = async (novel: Novel) => {
+    setCurrentNovel(novel);
+    setView('reader');
+    setChapters([]);
+    setContent("");
+    setIsLoading(true);
+
+    if (isPreviewEnv) {
+      setTimeout(() => {
+        setChapters([
+          { id: 1, title: "제1화 - 시작", fileName: "1.시작.txt", downloadUrl: "" },
+          { id: 2, title: "제2화 - 모험", fileName: "2.모험.txt", downloadUrl: "" },
+        ]);
+        setIsLoading(false);
+      }, 500);
+      return;
+    }
+
+    try {
+      const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${novel.path}`;
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) throw new Error("챕터 목록을 불러오지 못했습니다.");
+
+      const data = await response.json();
+      
+      const loadedChapters = data
+        .filter((file: any) => file.name.endsWith('.txt'))
+        .map((file: any) => {
+          const match = file.name.match(/^(\d+)[.\s_-]+(.+)\.txt$/);
+          const chapterNum = match ? parseInt(match[1]) : 0;
+          const chapterTitle = match ? match[2] : file.name.replace('.txt', '');
+          
+          return {
+            id: chapterNum,
+            title: match ? `제${chapterNum}화 - ${chapterTitle}` : chapterTitle,
+            downloadUrl: file.download_url,
+            fileName: file.name
+          };
+        })
+        .sort((a: Chapter, b: Chapter) => a.id - b.id);
+
+      setChapters(loadedChapters);
+      if (loadedChapters.length > 0) {
+        setCurrentChapterIndex(0);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("챕터 목록을 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 3. 챕터 선택 시 내용 가져오기
   useEffect(() => {
     const fetchChapterContent = async () => {
-      if (chapters.length === 0) return;
+      if (view !== 'reader' || chapters.length === 0) return;
 
       setIsLoading(true);
       const chapter = chapters[currentChapterIndex];
-      
-      // 미리보기 환경 감지
-      const isPreviewEnv = window.location.protocol === 'blob:' || window.location.hostname === '';
 
       try {
         if (isPreviewEnv) {
            await new Promise(resolve => setTimeout(resolve, 300));
-           // 데모 텍스트
-           setContent(`[시스템] 미리보기 모드입니다.\n\n현재 선택된 파일: ${chapter.fileName}\n\nGitHub Pages에 배포하고 설정을 완료하면 실제 파일 내용이 이곳에 표시됩니다.\n\n(파일명 규칙: "1.제목.txt" 형태로 파일을 저장하면 자동으로 인식합니다.)`);
+           setContent(`[시스템] 미리보기 모드입니다.\n\n선택된 소설: ${currentNovel?.title}\n선택된 파일: ${chapter.fileName}\n\nGitHub Pages 설정이 완료되면 실제 소설 내용이 여기에 표시됩니다.`);
         } else {
-          // GitHub Raw 데이터 가져오기 (downloadUrl 사용)
           const response = await fetch(chapter.downloadUrl);
           if (!response.ok) throw new Error("내용 로드 실패");
           const text = await response.text();
@@ -149,7 +214,18 @@ export default function WebNovelReader() {
     };
 
     fetchChapterContent();
-  }, [currentChapterIndex, chapters]);
+  }, [currentChapterIndex, chapters, view]);
+
+  // 이미지 URL 생성 헬퍼
+  const getCoverImage = (novel: Novel) => {
+    // 미리보기 환경
+    if (isPreviewEnv) return novel.coverUrl || null;
+    
+    // 실제 GitHub Pages 환경:
+    // 상대 경로로 해당 폴더의 cover.jpg를 가리킴
+    // <img> 태그에서 onError로 처리하여 png, jpeg 등을 시도하거나 빈 이미지 표시
+    return `./${novel.path}/cover.jpg`; 
+  };
 
   const handlePrev = () => {
     if (currentChapterIndex > 0) setCurrentChapterIndex(prev => prev - 1);
@@ -161,46 +237,212 @@ export default function WebNovelReader() {
 
   const currentTheme = THEMES[theme];
 
-  // 폴더명을 제목으로 사용 (특수문자 제거 및 공백 처리)
-  const displayTitle = decodeURIComponent(GITHUB_CONFIG.path).replace(/[-_]/g, ' ');
+  // --------------------------------------------------------------------------------
+  // 렌더링: 에러 화면
+  // --------------------------------------------------------------------------------
+  if (errorMsg) {
+    return (
+      <div className={`flex h-screen flex-col items-center justify-center p-4 ${THEMES[theme].bg} ${THEMES[theme].text}`}>
+        <div className="max-w-md w-full p-6 border border-red-300 rounded-lg bg-red-50 text-red-700 shadow-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="text-red-600" />
+            <h3 className="font-bold text-lg">설정 오류 발생</h3>
+          </div>
+          <p className="mb-4 font-medium">{errorMsg}</p>
+          <div className="text-sm bg-white p-3 rounded border border-red-100 text-gray-600">
+            <p className="mb-1"><strong>확인해주세요:</strong></p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>GITHUB_CONFIG 설정이 올바른지 확인하세요.</li>
+              <li>루트 폴더({GITHUB_CONFIG.rootPath})가 존재하나요?</li>
+            </ul>
+          </div>
+          <button onClick={() => window.location.reload()} className="mt-4 w-full py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">새로고침</button>
+        </div>
+      </div>
+    );
+  }
 
-  if (isListLoading) {
+  // --------------------------------------------------------------------------------
+  // 렌더링: 로딩 중
+  // --------------------------------------------------------------------------------
+  if (isGlobalLoading) {
     return (
       <div className={`flex h-screen items-center justify-center ${THEMES[theme].bg} ${THEMES[theme].text}`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-current mx-auto mb-4 opacity-50"></div>
-          <p>소설 목록을 불러오는 중...</p>
+          <p>서재를 불러오는 중...</p>
         </div>
       </div>
     );
   }
 
-  if (errorMsg) {
+  // --------------------------------------------------------------------------------
+  // 렌더링: 소설 목록 (Home)
+  // --------------------------------------------------------------------------------
+  if (view === 'list') {
     return (
-      <div className={`flex h-screen items-center justify-center ${THEMES[theme].bg} ${THEMES[theme].text}`}>
-        <div className="text-center max-w-md p-6 border border-red-300 rounded-lg bg-red-50 text-red-700">
-          <h3 className="font-bold text-lg mb-2">설정 오류</h3>
-          <p className="mb-4">{errorMsg}</p>
-          <p className="text-sm opacity-75">GITHUB_CONFIG 설정을 확인하거나, 폴더명을 확인해주세요.</p>
-        </div>
+      <div className={`min-h-screen ${currentTheme.bg} ${currentTheme.text} transition-colors duration-300 font-sans`}>
+        {/* 헤더 */}
+        <header className={`h-16 flex items-center justify-between px-6 border-b border-opacity-10 border-black sticky top-0 z-10 ${currentTheme.ui}`}>
+          <div className="flex items-center gap-3">
+            <Book size={24} className="text-blue-500" />
+            <h1 className="font-bold text-xl">나의 웹소설 서재</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setHelpOpen(true)} className="p-2 rounded-full hover:bg-black/5 text-gray-500" title="도움말">
+              <HelpCircle size={20} />
+            </button>
+            <button onClick={() => setSettingsOpen(!settingsOpen)} className="p-2 rounded-full hover:bg-black/5" title="설정">
+              <Settings size={20} />
+            </button>
+          </div>
+          {/* 설정 팝업 (테마만) */}
+          {settingsOpen && (
+            <div className={`absolute top-16 right-4 w-64 p-4 rounded-xl shadow-2xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} z-50`}>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold opacity-60 mb-2 block uppercase">테마</label>
+                  <div className="flex gap-2 bg-black/5 p-1 rounded-lg">
+                    <button onClick={() => setTheme('light')} className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'light' ? 'bg-white shadow-sm text-black' : 'hover:bg-black/5'}`}><Sun size={18} /></button>
+                    <button onClick={() => setTheme('sepia')} className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'sepia' ? 'bg-[#f4ecd8] shadow-sm text-[#5b4636]' : 'hover:bg-black/5'}`}><Book size={18} /></button>
+                    <button onClick={() => setTheme('dark')} className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'dark' ? 'bg-gray-700 shadow-sm text-white' : 'hover:bg-black/5'}`}><Moon size={18} /></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </header>
+
+        {/* 소설 카드 그리드 */}
+        <main className="max-w-6xl mx-auto p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {novels.map((novel) => (
+              <button 
+                key={novel.id} 
+                onClick={() => selectNovel(novel)}
+                className={`flex flex-col text-left rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all transform hover:-translate-y-1 border ${currentTheme.card}`}
+              >
+                {/* 썸네일 이미지 영역 */}
+                <div className={`h-48 w-full ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'} relative overflow-hidden flex items-center justify-center`}>
+                  {novel.coverUrl ? (
+                    // 미리보기 환경일 때
+                    <img src={novel.coverUrl} alt={novel.title} className="w-full h-full object-cover" />
+                  ) : (
+                    // GitHub Pages 환경: 실제 이미지 로드 시도
+                    <img 
+                      src={`./${novel.path}/cover.jpg`} 
+                      alt={novel.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                         // jpg 실패 시 png 시도
+                         const target = e.target as HTMLImageElement;
+                         if (target.src.endsWith('cover.jpg')) {
+                           target.src = `./${novel.path}/cover.png`;
+                         } else {
+                           // 모두 실패 시 숨기고 아이콘 표시
+                           target.style.display = 'none';
+                           target.parentElement?.classList.add('show-placeholder');
+                         }
+                      }}
+                    />
+                  )}
+                  {/* 이미지가 없을 때 보여줄 플레이스홀더 아이콘 */}
+                  <div className={`absolute inset-0 flex items-center justify-center pointer-events-none placeholder-icon ${theme === 'dark' ? 'text-gray-700' : 'text-gray-400'}`} style={{display: 'none'}}> 
+                     <ImageIcon size={48} />
+                  </div>
+                  {/* JS로 이미지 로드 실패 시, 위 div를 보이게 하는 대신 CSS로 처리하기엔 복잡하므로 
+                      React에서는 onError에서 상태 관리를 하거나 DOM 조작을 해야 함.
+                      여기서는 단순화를 위해 onError에서 display none 처리만 함.
+                      실제 이미지가 깨지면 그냥 회색 배경이 보임.
+                   */}
+                   {!novel.coverUrl && <ImageIcon size={48} className={`absolute opacity-20 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} />}
+                </div>
+
+                <div className="p-4 flex-1 flex flex-col justify-center">
+                  <h3 className="font-bold text-lg mb-2 line-clamp-2">{novel.title}</h3>
+                  <span className="text-sm opacity-60 flex items-center gap-1">
+                    <Book size={14} /> 소설 읽기
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {novels.length === 0 && (
+            <div className="text-center py-20 opacity-50">
+              <p>등록된 소설이 없습니다.</p>
+            </div>
+          )}
+        </main>
+
+        {/* 도움말 모달 */}
+        {helpOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={() => setHelpOpen(false)}>
+            <div className={`max-w-lg w-full p-6 rounded-xl shadow-2xl relative ${theme === 'dark' ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-800'}`} onClick={e => e.stopPropagation()}>
+              <button onClick={() => setHelpOpen(false)} className="absolute top-4 right-4 opacity-50 hover:opacity-100"><X size={24} /></button>
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Book size={24} className="text-blue-500" /> 서재 설정 가이드</h3>
+              
+              <div className="space-y-4 text-sm leading-relaxed overflow-y-auto max-h-[60vh] pr-2">
+                <div>
+                  <h4 className="font-bold mb-1 text-base text-blue-600">1. 폴더 구조</h4>
+                  <pre className={`p-3 rounded-lg text-xs ${theme === 'dark' ? 'bg-black/30' : 'bg-gray-100'}`}>
+{`${GITHUB_CONFIG.repo}/
+├── index.html
+└── ${GITHUB_CONFIG.rootPath}/ (설정한 루트 폴더)
+    ├── 드래곤라자/
+    │   ├── cover.jpg (표지 이미지)
+    │   ├── 1.서막.txt
+    │   └── 2.전개.txt
+    └── 다른소설/
+        ├── cover.png
+        └── 1.시작.txt`}
+                  </pre>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-1 text-base text-blue-600">2. 표지 이미지</h4>
+                  <p className="opacity-80">
+                    각 소설 폴더 안에 <code>cover.jpg</code> 혹은 <code>cover.png</code> 파일을 넣으면 자동으로 목록에 표시됩니다.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 text-center">
+                <button onClick={() => setHelpOpen(false)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold">확인</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
+  // --------------------------------------------------------------------------------
+  // 렌더링: 뷰어 (Reader)
+  // --------------------------------------------------------------------------------
   return (
     <div className={`flex h-screen overflow-hidden ${currentTheme.bg} ${currentTheme.text} transition-colors duration-300 font-sans`}>
       
       {/* 사이드바 (목차) */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-r shadow-lg md:shadow-none flex flex-col`}>
         <div className="p-4 border-b border-opacity-20 border-gray-500 flex justify-between items-center">
-          <h2 className="font-bold text-lg flex items-center gap-2">
+          <h2 className="font-bold text-lg flex items-center gap-2 truncate">
             <Book size={20} />
-            목차
+            <span className="truncate">{currentNovel?.title}</span>
           </h2>
           <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1 rounded hover:bg-black/10">
             <X size={20} />
           </button>
         </div>
+        
+        {/* 홈으로 가기 버튼 추가 */}
+        <div className="p-2 border-b border-opacity-10 border-gray-500">
+           <button 
+             onClick={() => setView('list')}
+             className="w-full flex items-center gap-2 p-2 rounded hover:bg-black/5 text-sm font-bold opacity-70"
+           >
+             <Home size={16} /> 서재로 돌아가기
+           </button>
+        </div>
+
         <div className="flex-1 overflow-y-auto p-2">
           {chapters.map((chapter, idx) => (
             <button
@@ -212,8 +454,8 @@ export default function WebNovelReader() {
                   : 'hover:bg-black/5'
               }`}
             >
-              <span className="text-sm opacity-70 block">#{chapter.id}</span>
-              <span className="truncate">{chapter.title}</span>
+              <span className="text-xs opacity-50 block mb-0.5">#{chapter.id}</span>
+              <span className="truncate block font-medium">{chapter.title.split('-')[1]?.trim() || chapter.title}</span>
             </button>
           ))}
         </div>
@@ -229,16 +471,12 @@ export default function WebNovelReader() {
               <Menu size={20} />
             </button>
             <h1 className="font-bold text-lg truncate max-w-[200px] sm:max-w-md">
-              {displayTitle}
+              {currentNovel?.title}
             </h1>
           </div>
           
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setSettingsOpen(!settingsOpen)} 
-              className={`p-2 rounded-full transition-colors ${settingsOpen ? 'bg-black/10' : 'hover:bg-black/5'}`}
-              title="설정"
-            >
+            <button onClick={() => setSettingsOpen(!settingsOpen)} className={`p-2 rounded-full transition-colors ${settingsOpen ? 'bg-black/10' : 'hover:bg-black/5'}`} title="설정">
               <Settings size={20} />
             </button>
           </div>
@@ -251,55 +489,22 @@ export default function WebNovelReader() {
                 <div>
                   <label className="text-xs font-bold opacity-60 mb-2 block uppercase">테마</label>
                   <div className="flex gap-2 bg-black/5 p-1 rounded-lg">
-                    <button 
-                      onClick={() => setTheme('light')} 
-                      className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'light' ? 'bg-white shadow-sm text-black' : 'hover:bg-black/5'}`}
-                    >
-                      <Sun size={18} />
-                    </button>
-                    <button 
-                      onClick={() => setTheme('sepia')} 
-                      className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'sepia' ? 'bg-[#f4ecd8] shadow-sm text-[#5b4636]' : 'hover:bg-black/5'}`}
-                    >
-                      <Book size={18} />
-                    </button>
-                    <button 
-                      onClick={() => setTheme('dark')} 
-                      className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'dark' ? 'bg-gray-700 shadow-sm text-white' : 'hover:bg-black/5'}`}
-                    >
-                      <Moon size={18} />
-                    </button>
+                    <button onClick={() => setTheme('light')} className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'light' ? 'bg-white shadow-sm text-black' : 'hover:bg-black/5'}`}><Sun size={18} /></button>
+                    <button onClick={() => setTheme('sepia')} className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'sepia' ? 'bg-[#f4ecd8] shadow-sm text-[#5b4636]' : 'hover:bg-black/5'}`}><Book size={18} /></button>
+                    <button onClick={() => setTheme('dark')} className={`flex-1 py-2 rounded-md flex justify-center ${theme === 'dark' ? 'bg-gray-700 shadow-sm text-white' : 'hover:bg-black/5'}`}><Moon size={18} /></button>
                   </div>
                 </div>
-
-                {/* 글자 크기 설정 */}
+                {/* 글자 크기 */}
                 <div>
-                  <label className="text-xs font-bold opacity-60 mb-2 block uppercase flex items-center gap-2">
-                    <Type size={14} /> 글자 크기: {fontSize}px
-                  </label>
-                  <input 
-                    type="range" 
-                    min="14" 
-                    max="28" 
-                    step="1"
-                    value={fontSize} 
-                    onChange={(e) => setFontSize(Number(e.target.value))}
-                    className="w-full accent-blue-500 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
+                  <label className="text-xs font-bold opacity-60 mb-2 block uppercase flex items-center gap-2"><Type size={14} /> 글자 크기: {fontSize}px</label>
+                  <input type="range" min="14" max="28" step="1" value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} className="w-full accent-blue-500 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
                 </div>
-
-                {/* 줄 간격 설정 */}
+                {/* 줄 간격 */}
                 <div>
                   <label className="text-xs font-bold opacity-60 mb-2 block uppercase">줄 간격</label>
                   <div className="flex gap-2">
                     {[1.6, 1.8, 2.2].map((lh) => (
-                      <button
-                        key={lh}
-                        onClick={() => setLineHeight(lh)}
-                        className={`flex-1 py-1 text-sm rounded border ${lineHeight === lh ? 'border-blue-500 text-blue-500 bg-blue-50' : 'border-gray-300 opacity-70'}`}
-                      >
-                        {lh}
-                      </button>
+                      <button key={lh} onClick={() => setLineHeight(lh)} className={`flex-1 py-1 text-sm rounded border ${lineHeight === lh ? 'border-blue-500 text-blue-500 bg-blue-50' : 'border-gray-300 opacity-70'}`}>{lh}</button>
                     ))}
                   </div>
                 </div>
@@ -316,11 +521,9 @@ export default function WebNovelReader() {
           <div className="max-w-3xl mx-auto px-6 py-10 md:py-16 min-h-full flex flex-col">
             <div className="mb-8 pb-4 border-b border-opacity-10 border-black text-center">
               <span className="text-sm opacity-60 mb-2 block">
-                {/* 챕터 번호 표시 */}
                 {chapters.length > 0 && `#${chapters[currentChapterIndex].id}`}
               </span>
               <h2 className="text-2xl md:text-3xl font-bold">
-                {/* 챕터 제목 표시 */}
                 {chapters.length > 0 && chapters[currentChapterIndex].title}
               </h2>
             </div>
@@ -337,7 +540,6 @@ export default function WebNovelReader() {
                   lineHeight: lineHeight,
                 }}
               >
-                {/* 텍스트 내용 */}
                 {content}
               </div>
             )}
@@ -369,7 +571,7 @@ export default function WebNovelReader() {
           </div>
         </main>
 
-        {/* 오버레이 (사이드바 열렸을 때 배경) */}
+        {/* 오버레이 */}
         {sidebarOpen && (
           <div 
             className="fixed inset-0 bg-black/50 z-40 md:hidden"
