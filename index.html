@@ -226,8 +226,10 @@
             // 더블클릭
             const handleDoubleClick = (e) => {
                 if (!gestureEnabled) return;
-                if (window.getSelection().toString().length > 0) return;
-
+                // PC에서 더블클릭 시 텍스트가 자동 선택되는 경우가 많아 
+                // 기존의 window.getSelection() 체크는 PC 더블클릭 네비게이션을 방해합니다.
+                // 따라서 더블클릭 시에는 텍스트 선택 여부를 무시하고 페이지 이동을 수행하도록 변경했습니다.
+                
                 const width = window.innerWidth;
                 const clickX = e.clientX;
 
@@ -238,8 +240,17 @@
             // 드래그/터치 시작
             const handlePointerDown = (e) => {
                 if (!gestureEnabled) return;
-                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                
+                // 터치 이벤트와 마우스 이벤트의 좌표 추출 방식 통일
+                let clientX, clientY;
+                if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                
                 if (clientX === undefined) return;
                 
                 dragStartRef.current = { x: clientX, y: clientY };
@@ -248,10 +259,20 @@
             // 드래그/터치 종료
             const handlePointerUp = (e) => {
                 if (!gestureEnabled) return;
+                
+                // 드래그의 경우(스와이프), 텍스트 선택 의도와 페이지 이동 의도를 구분하기 위해
+                // 텍스트가 선택된 상태라면 네비게이션을 막는 로직을 유지합니다.
                 if (window.getSelection().toString().length > 0) return;
 
-                const clientX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
-                const clientY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+                let clientX, clientY;
+                if (e.changedTouches && e.changedTouches.length > 0) {
+                    clientX = e.changedTouches[0].clientX;
+                    clientY = e.changedTouches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                
                 if (clientX === undefined) return;
 
                 const diffX = clientX - dragStartRef.current.x;
@@ -263,8 +284,8 @@
 
                 // 가로 이동 50px 이상일 때만 동작
                 if (Math.abs(diffX) > 50) {
-                    if (diffX > 0) handlePrev(); // 오른쪽 드래그 (이전)
-                    else handleNext(); // 왼쪽 드래그 (다음)
+                    if (diffX > 0) handlePrev(); // 오른쪽으로 드래그 (이전)
+                    else handleNext(); // 왼쪽으로 드래그 (다음)
                 }
             };
 
@@ -576,9 +597,7 @@
                                 <div className="space-y-4 text-sm opacity-80 leading-relaxed">
                                     <p>GitHub Repository에 소설 파일을 올리면 자동으로 이곳에 표시됩니다.</p>
                                     <ul className="list-disc pl-5 space-y-1">
-                                        <li><strong>폴더 구조:</strong> Novels / 소설제목 / 파일들</li>
-                                        <li><strong>파일 이름:</strong> 1.첫만남.txt 형태로 저장</li>
-                                        <li><strong>이미지:</strong> 폴더 안에 cover.jpg 저장</li>
+                                        <li><strong>제스처:</strong> 화면 왼쪽/오른쪽 더블클릭 또는 좌우 드래그로 회차 이동 가능</li>
                                     </ul>
                                 </div>
                                 <div className="mt-6 text-center"><button onClick={() => setHelpOpen(false)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">닫기</button></div>
