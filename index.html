@@ -5,43 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Jinos 웹소설</title>
     
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS (스타일링 프레임워크) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM -->
+    <!-- React & ReactDOM (UI 라이브러리) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel (JSX 컴파일러) -->
+    <!-- Babel (JSX 변환기) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Markdown Parser (marked.js) -->
+    <!-- Markdown Parser (마크다운 지원) -->
     <script src="https://unpkg.com/marked@4.3.0/marked.min.js"></script>
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts (웹 폰트) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* [보안 설정] 텍스트 선택 및 드래그 금지 */
+        /* [보안 설정] 텍스트 선택, 드래그, 우클릭 메뉴 등 차단 */
         body { 
             margin: 0; 
             padding: 0; 
-            touch-action: pan-y;
+            touch-action: pan-y; /* 수직 스크롤은 허용하되, 좌우 제스처는 JS로 처리 */
+            
+            /* 텍스트 선택 방지 (브라우저별 벤더 프리픽스) */
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
+            
+            /* 롱터치 컨텍스트 메뉴 방지 */
             -webkit-touch-callout: none;
         }
         
-        /* 폰트 패밀리 정의 */
+        /* 폰트 패밀리 클래스 정의 */
         .font-sans-kr { font-family: 'Noto Sans KR', sans-serif; }
         .font-serif-kr { font-family: 'Noto Serif KR', serif; }
         .font-dodum-kr { font-family: 'Gowun Dodum', sans-serif; }
 
-        /* 이어보기 모달 애니메이션 */
+        /* 이어보기 모달 등장 애니메이션 */
         @keyframes slideUp {
             from { transform: translateY(100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -50,7 +54,7 @@
             animation: slideUp 0.3s ease-out forwards;
         }
 
-        /* 토글 스위치 디자인 */
+        /* 설정 토글 스위치 커스텀 스타일 */
         .toggle-checkbox:checked {
             right: 0;
             border-color: #3b82f6;
@@ -59,19 +63,34 @@
             background-color: #3b82f6;
         }
 
-        /* [커스텀 스크롤바] 테마 색상 변수 사용 */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--scrollbar-track, #f1f1f1); }
-        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb, #888); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover, #555); }
-        * { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+        /* [커스텀 스크롤바 스타일] CSS 변수로 테마 색상 적용 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar-track, #f1f1f1); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb, #888); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbar-thumb-hover, #555); 
+        }
+        /* 파이어폭스 호환성 */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        }
 
-        /* [마크다운 상세 스타일 전역 정의] */
+        /* [마크다운(.md) 전용 스타일 보정] */
         .markdown-body { color: inherit; line-height: inherit; }
         .markdown-body h1 { font-size: 1.8em; font-weight: 800; margin: 1.2em 0 0.6em; border-bottom: 2px solid currentColor; padding-bottom: 0.3em; }
         .markdown-body h2 { font-size: 1.5em; font-weight: 700; margin: 1em 0 0.5em; border-bottom: 1px solid currentColor; opacity: 0.9; padding-bottom: 0.2em; }
         .markdown-body h3 { font-size: 1.2em; font-weight: 700; margin: 0.8em 0 0.4em; }
         .markdown-body p { margin-bottom: 1.2em; text-align: justify; }
+        /* 마크다운 내부 스타일 강제 적용 */
         .markdown-body em, .markdown-body i { font-style: italic !important; color: inherit; }
         .markdown-body strong, .markdown-body b { font-weight: bold !important; color: inherit; }
         .markdown-body ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
@@ -79,6 +98,7 @@
         .markdown-body blockquote { border-left: 4px solid #888; padding-left: 1em; opacity: 0.7; font-style: italic; margin: 1.5em 0; }
         .markdown-body hr { border: 0; border-top: 1px solid currentColor; opacity: 0.2; margin: 2em 0; }
         .markdown-body code { background: rgba(0,0,0,0.05); padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }
+        /* 인라인 HTML 스타일 허용 (색상 등) */
         .markdown-body span { color: inherit; }
         .markdown-body img { max-width: 100%; height: auto; border-radius: 8px; margin: 1em auto; display: block; }
     </style>
@@ -87,20 +107,20 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+        const { useState, useEffect, useRef, useMemo, memo } = React;
 
         // ----------------------------------------------------------------------
-        // [사용자 설정 영역]
+        // [사용자 설정 영역: GitHub 저장소 정보]
         // ----------------------------------------------------------------------
         const GITHUB_CONFIG = {
-            owner: "jinhoSung",
-            repo: "JNSWebNovel",
-            rootPath: "Novels",
-            branch: "main",
+            owner: "jinhoSung",      // GitHub 아이디
+            repo: "JNSWebNovel",     // 저장소 이름
+            rootPath: "Novels",      // 소설 폴더들이 위치한 경로
+            branch: "main",          // 브랜치 이름
         };
 
         // ----------------------------------------------------------------------
-        // 아이콘 컴포넌트 라이브러리
+        // [아이콘 컴포넌트] (Lucide React 대체용 SVG)
         // ----------------------------------------------------------------------
         const Icon = ({ path, size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -123,10 +143,9 @@
         const MousePointerClick = (props) => <Icon {...props} path={<><path d="m9 9 5 12 1.8-5.2L21 14Z"/><path d="M7.2 2.2 8 5.1"/><path d="m5.1 8-2.9-.8"/><path d="M14 4.1 12 6"/><path d="m6 12-1.9 2"/></>} />;
         const Maximize = (props) => <Icon {...props} path={<><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></>} />;
         const Minimize = (props) => <Icon {...props} path={<><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></>} />;
-        const Clock = (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>} />;
 
         // ----------------------------------------------------------------------
-        // 테마 및 폰트 데이터 정의
+        // [테마 및 폰트 데이터 정의]
         // ----------------------------------------------------------------------
         const THEMES = {
             light: { 
@@ -158,7 +177,7 @@
         };
 
         // ----------------------------------------------------------------------
-        // 커스텀 훅: LocalStorage 관리
+        // [커스텀 훅] LocalStorage 관리 (설정 저장용)
         // ----------------------------------------------------------------------
         function useLocalStorage(key, initialValue) {
             const [storedValue, setStoredValue] = useState(() => {
@@ -178,10 +197,39 @@
         }
 
         // ----------------------------------------------------------------------
+        // [최적화] 시계 컴포넌트 분리 (성능 향상을 위해 memo 사용)
+        // ----------------------------------------------------------------------
+        const CurrentTimeDisplay = memo(() => {
+            const [time, setTime] = useState("");
+
+            useEffect(() => {
+                const update = () => {
+                    const now = new Date();
+                    const month = now.getMonth() + 1;
+                    const day = now.getDate();
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    // 요청사항: 1.5배 크기, 월/일 포함
+                    setTime(`${month}월 ${day}일 ${hours}:${minutes}`);
+                };
+                update();
+                const timer = setInterval(update, 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            return (
+                // 폰트 크기 및 굵기 강조 (1.5배 느낌의 text-sm + bold)
+                <div className="text-sm font-bold opacity-70 mr-3 min-w-[12ch] text-right hidden sm:block select-none">
+                    {time}
+                </div>
+            );
+        });
+
+        // ----------------------------------------------------------------------
         // 메인 애플리케이션 컴포넌트
         // ----------------------------------------------------------------------
         function WebNovelReader() {
-            // [상태 관리]
+            // [상태 관리: 데이터]
             const [view, setView] = useState('list');
             const [novels, setNovels] = useState([]);
             const [currentNovel, setCurrentNovel] = useState(null);
@@ -189,24 +237,24 @@
             const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
             const [content, setContent] = useState("");
             
+            // [상태 관리: 로딩/에러]
             const [isLoading, setIsLoading] = useState(false);
             const [isGlobalLoading, setIsGlobalLoading] = useState(true);
             const [errorMsg, setErrorMsg] = useState(null);
 
-            // [UI 상태]
+            // [상태 관리: UI]
             const [sidebarOpen, setSidebarOpen] = useState(false);
             const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(true);
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [helpOpen, setHelpOpen] = useState(false);
             const [isFullScreen, setIsFullScreen] = useState(false);
-            const [currentTime, setCurrentTime] = useState("");
             
-            // [이어보기 / 진행률]
+            // [상태 관리: 편의기능]
             const [lastReadData, setLastReadData] = useState(null);
             const [showResumeModal, setShowResumeModal] = useState(false);
             const [scrollProgress, setScrollProgress] = useState(0);
 
-            // [설정 값 (LocalStorage)]
+            // [설정 값 (LocalStorage 연동)]
             const [themeKey, setThemeKey] = useLocalStorage('jinos_theme', 'sepia');
             const [fontSize, setFontSize] = useLocalStorage('jinos_fontsize', 18);
             const [lineHeight, setLineHeight] = useLocalStorage('jinos_lineheight', 1.8);
@@ -219,12 +267,14 @@
             const theme = THEMES[themeKey] || THEMES.sepia;
             const font = FONTS[fontFamilyKey] || FONTS.sans;
 
+            // 미리보기 환경 감지
             const isPreviewEnv = window.location.protocol === 'blob:' || window.location.hostname === '';
 
-            // 1. [보안 이벤트, 전체화면 감지, 시계]
+            // 1. [보안 이벤트 및 전체화면 상태 감지]
             useEffect(() => {
                 const preventDefault = (e) => e.preventDefault();
 
+                // 우클릭, 복사, 드래그 등 차단
                 document.addEventListener('contextmenu', preventDefault);
                 document.addEventListener('copy', preventDefault);
                 document.addEventListener('cut', preventDefault);
@@ -232,9 +282,8 @@
                 document.addEventListener('dragstart', preventDefault);
                 document.addEventListener('selectstart', preventDefault);
 
-                // 키보드 단축키 핸들러 (보안 및 네비게이션)
+                // 개발자 도구 단축키 차단
                 const handleKeyDown = (e) => {
-                    // 보안 차단
                     if (
                         e.key === 'F12' || 
                         (e.ctrlKey && (e.key === 'u' || e.key === 'U')) || 
@@ -242,35 +291,12 @@
                         (e.ctrlKey && (e.key === 'p' || e.key === 'P')) || 
                         (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I' || e.key === 'c' || e.key === 'C' || e.key === 'j' || e.key === 'J'))
                     ) { e.preventDefault(); }
-
-                    // [개선] 키보드 네비게이션 (뷰어 모드일 때만)
-                    if (view === 'reader') {
-                        if (e.key === 'ArrowLeft') {
-                            // 이전 화
-                            // React state closure 문제 해결을 위해 ref나 함수형 업데이트 대신
-                            // 이벤트 리스너 내부에서 직접 handlePrev를 호출하기 어려우므로 
-                            // 별도 useEffect로 분리하지 않고 이곳에서 처리하거나,
-                            // 상태 의존성 때문에 아래 useEffect에서 처리
-                        }
-                    }
                 };
                 document.addEventListener('keydown', handleKeyDown);
 
+                // 전체화면 상태 동기화
                 const handleFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
                 document.addEventListener('fullscreenchange', handleFullScreenChange);
-
-                // [개선] 시계 업데이트 (포맷: 1월 23일 14:25) - 성능 최적화: 초 단위 제거
-                const updateTime = () => {
-                    const now = new Date();
-                    const month = now.getMonth() + 1;
-                    const day = now.getDate();
-                    const hours = String(now.getHours()).padStart(2, '0');
-                    const minutes = String(now.getMinutes()).padStart(2, '0');
-                    setCurrentTime(`${month}월 ${day}일 ${hours}:${minutes}`);
-                };
-                updateTime();
-                // 30초마다 갱신 (초 단위 표시 안하므로)
-                const timer = setInterval(updateTime, 30000); 
 
                 return () => {
                     document.removeEventListener('contextmenu', preventDefault);
@@ -281,26 +307,10 @@
                     document.removeEventListener('selectstart', preventDefault);
                     document.removeEventListener('keydown', handleKeyDown);
                     document.removeEventListener('fullscreenchange', handleFullScreenChange);
-                    clearInterval(timer);
                 };
             }, []);
 
-            // [키보드 네비게이션 별도 훅]
-            useEffect(() => {
-                const handleNavKey = (e) => {
-                    if (view !== 'reader') return;
-                    if (e.key === 'ArrowLeft') {
-                        if (currentChapterIndex > 0) setCurrentChapterIndex(prev => prev - 1);
-                    } else if (e.key === 'ArrowRight') {
-                        if (currentChapterIndex < chapters.length - 1) setCurrentChapterIndex(prev => prev + 1);
-                    }
-                };
-                window.addEventListener('keydown', handleNavKey);
-                return () => window.removeEventListener('keydown', handleNavKey);
-            }, [view, currentChapterIndex, chapters]);
-
-
-            // 2. [초기 데이터 로드 및 이어보기 기록 확인]
+            // 2. [초기 로드: 소설 목록 + 이어보기 체크]
             useEffect(() => {
                 fetchNovelList();
                 try {
@@ -315,20 +325,44 @@
                 } catch (e) {}
             }, []);
 
-            // 3. [진행률 업데이트 및 자동 저장]
-            // [개선] 스크롤 위치 저장 로직 포함
+            // 3. [진행률 및 스크롤 위치 저장]
+            // 스크롤이 멈췄을 때 현재 위치를 저장 (디바운싱 없이 간단하게 구현)
+            useEffect(() => {
+                const handleScroll = () => {
+                    if (viewerRef.current) {
+                        const { scrollTop, scrollHeight, clientHeight } = viewerRef.current;
+                        const totalScroll = scrollHeight - clientHeight;
+                        
+                        // 진행률 계산
+                        if (totalScroll > 0) {
+                            const percent = Math.min(100, Math.max(0, Math.round((scrollTop / totalScroll) * 100)));
+                            setScrollProgress(percent);
+                        } else {
+                            setScrollProgress(100);
+                        }
+                    }
+                };
+
+                const viewerElement = viewerRef.current;
+                if (viewerElement) {
+                    viewerElement.addEventListener('scroll', handleScroll);
+                    handleScroll(); // 초기값 설정
+                }
+                return () => { if (viewerElement) viewerElement.removeEventListener('scroll', handleScroll); };
+            }, [content, view]);
+
+            // 챕터가 바뀌거나 뷰어를 떠날 때 현재 상태 저장
             useEffect(() => {
                 if (view === 'reader' && currentNovel && chapters.length > 0) {
                     const currentChapter = chapters[currentChapterIndex];
                     if (!currentChapter) return;
 
-                    // 스크롤 퍼센트 계산
-                    let progressPercent = 0;
-                    if (viewerRef.current) {
+                    // 스크롤 비율 계산
+                    let scrollRatio = 0;
+                    if(viewerRef.current) {
                         const { scrollTop, scrollHeight, clientHeight } = viewerRef.current;
-                        const totalScroll = scrollHeight - clientHeight;
-                        if (totalScroll > 0) {
-                            progressPercent = Math.min(100, Math.max(0, (scrollTop / totalScroll) * 100));
+                        if(scrollHeight > clientHeight) {
+                            scrollRatio = scrollTop / (scrollHeight - clientHeight);
                         }
                     }
 
@@ -338,63 +372,14 @@
                         novelPath: currentNovel.path,
                         chapterIndex: currentChapterIndex,
                         chapterTitle: currentChapter.title,
-                        scrollProgress: progressPercent, // [추가] 스크롤 위치 저장
+                        scrollRatio: scrollRatio,
                         timestamp: new Date().getTime()
                     };
-                    
-                    // 디바운싱 없이 저장하면 성능 이슈가 있을 수 있으나, 
-                    // useEffect 의존성이 chapterIndex/view 변경 시에만 작동하므로
-                    // 스크롤 할 때마다 저장은 별도 로직이 필요함.
-                    // 여기서는 챕터가 바뀔 때 마지막 상태를 저장하는 것으로 처리하거나,
-                    // 스크롤 이벤트에서 디바운싱하여 저장하는 것이 좋음.
-                    // 단순화를 위해 챕터 변경 시점 저장 + 스크롤 시 별도 저장.
                     localStorage.setItem('jinos_last_read', JSON.stringify(saveData));
                 }
-            }, [currentChapterIndex, view, currentNovel, chapters]);
+            }, [currentChapterIndex, view, currentNovel, chapters]); // content가 빠져야 스크롤 변경 시마다 저장되지 않음(성능)
 
-            // [개선] 스크롤 이벤트 리스너 (진행률 표시 + 위치 저장 최적화)
-            useEffect(() => {
-                let scrollTimeout;
-                const handleScroll = () => {
-                    if (viewerRef.current) {
-                        const { scrollTop, scrollHeight, clientHeight } = viewerRef.current;
-                        const totalScroll = scrollHeight - clientHeight;
-                        if (totalScroll > 0) {
-                            const percent = Math.min(100, Math.max(0, Math.round((scrollTop / totalScroll) * 100)));
-                            setScrollProgress(percent);
-                            
-                            // [추가] 스크롤 멈춤 감지 후 위치 저장 (디바운싱)
-                            clearTimeout(scrollTimeout);
-                            scrollTimeout = setTimeout(() => {
-                                if (currentNovel && chapters[currentChapterIndex]) {
-                                    const exactPercent = (scrollTop / totalScroll);
-                                    const saveData = {
-                                        novelId: currentNovel.id,
-                                        novelTitle: currentNovel.title,
-                                        novelPath: currentNovel.path,
-                                        chapterIndex: currentChapterIndex,
-                                        chapterTitle: chapters[currentChapterIndex].title,
-                                        scrollProgress: exactPercent, // 정밀한 위치 저장
-                                        timestamp: new Date().getTime()
-                                    };
-                                    localStorage.setItem('jinos_last_read', JSON.stringify(saveData));
-                                }
-                            }, 500);
-                        } else setScrollProgress(100);
-                    }
-                };
-                const viewerElement = viewerRef.current;
-                if (viewerElement) {
-                    viewerElement.addEventListener('scroll', handleScroll);
-                    handleScroll();
-                }
-                return () => { 
-                    if (viewerElement) viewerElement.removeEventListener('scroll', handleScroll); 
-                    clearTimeout(scrollTimeout);
-                };
-            }, [content, view, currentNovel, chapters, currentChapterIndex]);
-
-            // 4. [제스처 제어 핸들러]
+            // 4. [제스처: 더블클릭]
             const handleDoubleClick = (e) => {
                 if (!gestureEnabled) return;
                 const width = window.innerWidth;
@@ -402,36 +387,41 @@
                 if (clickX < width / 2) handlePrev(); else handleNext();
             };
 
+            // 5. [제스처: 드래그/터치]
             const handlePointerDown = (e) => {
                 if (!gestureEnabled) return;
                 let clientX, clientY;
                 if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
                 else { clientX = e.clientX; clientY = e.clientY; }
+                
                 if (clientX === undefined) return;
                 dragStartRef.current = { x: clientX, y: clientY };
             };
 
             const handlePointerUp = (e) => {
                 if (!gestureEnabled) return;
-                // 드래그 중 실수로 선택될 경우 대비
+                // 드래그 중 텍스트 선택이 발생했으면 무시
                 if (window.getSelection().toString().length > 0) return;
 
                 let clientX, clientY;
                 if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; }
                 else { clientX = e.clientX; clientY = e.clientY; }
+                
                 if (clientX === undefined) return;
 
                 const diffX = clientX - dragStartRef.current.x;
                 const diffY = clientY - dragStartRef.current.y;
 
+                // 세로 스크롤 의도가 더 크면 무시
                 if (Math.abs(diffY) > Math.abs(diffX) || Math.abs(diffY) > 30) return;
 
+                // 50px 이상 이동 시 트리거
                 if (Math.abs(diffX) > 50) {
                     if (diffX > 0) handlePrev(); else handleNext();
                 }
             };
 
-            // 5. [전체화면 토글]
+            // 6. [전체화면 토글]
             const toggleFullScreen = () => {
                 if (!document.fullscreenElement) {
                     document.documentElement.requestFullscreen().catch(err => console.log(err));
@@ -440,11 +430,12 @@
                 }
             };
 
-            // 6. [API: 소설 목록 가져오기]
+            // 7. [데이터 로드: 소설 목록]
             const fetchNovelList = async () => {
                 setIsGlobalLoading(true);
                 setErrorMsg(null);
                 if (isPreviewEnv) {
+                    // 미리보기용 더미 데이터
                     setTimeout(() => {
                         setNovels([
                             { id: '1', title: "드래곤 라자", path: "Novels/dragon_raja", coverUrl: "https://via.placeholder.com/150/8b4513/ffffff?text=Dragon" },
@@ -469,8 +460,8 @@
                 } catch (err) { setErrorMsg(err.message); } finally { setIsGlobalLoading(false); }
             };
 
-            // 7. [API: 소설 선택 및 챕터 목록 로드]
-            const selectNovel = async (novel, targetIndex = 0, initialProgress = 0) => {
+            // 8. [데이터 로드: 챕터 목록]
+            const selectNovel = async (novel, targetIndex = 0, targetScrollRatio = 0) => {
                 setCurrentNovel(novel);
                 setView('reader');
                 setChapters([]);
@@ -479,6 +470,9 @@
                 setSidebarOpen(false); 
                 setDesktopSidebarVisible(true);
                 setScrollProgress(0);
+
+                // 스크롤 복원 목표값 저장
+                if(viewerRef.current) viewerRef.current.dataset.restoreScroll = targetScrollRatio;
 
                 if (isPreviewEnv) {
                     setTimeout(() => {
@@ -510,26 +504,22 @@
                     setChapters(loadedChapters);
                     if (targetIndex >= 0 && targetIndex < loadedChapters.length) setCurrentChapterIndex(targetIndex);
                     else setCurrentChapterIndex(0);
-                    
-                    // [추가] 초기 로딩 시 스크롤 위치 복구 목표값 저장 (Ref 사용)
-                    viewerRef.current.dataset.targetScroll = initialProgress;
-
                 } catch (error) { alert("오류: " + error.message); } finally { setIsLoading(false); }
             };
 
-            // 8. [이어보기 실행]
+            // 9. [이어보기 처리]
             const handleResume = () => {
                 setShowResumeModal(false);
                 if (lastReadData) {
                     selectNovel(
                         { id: lastReadData.novelId, title: lastReadData.novelTitle, path: lastReadData.novelPath }, 
                         lastReadData.chapterIndex,
-                        lastReadData.scrollProgress || 0 // 저장된 스크롤 위치 전달
+                        lastReadData.scrollRatio || 0
                     );
                 }
             };
 
-            // 9. [API: 챕터 내용 로드]
+            // 10. [데이터 로드: 챕터 본문]
             const fetchChapterContent = async () => {
                 if (view !== 'reader' || !chapters[currentChapterIndex]) return;
                 setIsLoading(true);
@@ -548,11 +538,22 @@
                     }
                 } catch (error) { setContent("내용을 불러오는데 실패했습니다."); } finally {
                     setIsLoading(false);
-                    // 스크롤 복구 로직 (useEffect에서 처리하지만 여기서 초기화)
-                    if (viewerRef.current && !viewerRef.current.dataset.targetScroll) {
-                        viewerRef.current.scrollTop = 0;
-                        setScrollProgress(0);
-                    }
+                    
+                    // 스크롤 복구 로직 (렌더링 직후 실행)
+                    setTimeout(() => {
+                        if (viewerRef.current) {
+                            const restoreRatio = parseFloat(viewerRef.current.dataset.restoreScroll || 0);
+                            if (restoreRatio > 0) {
+                                const { scrollHeight, clientHeight } = viewerRef.current;
+                                viewerRef.current.scrollTop = (scrollHeight - clientHeight) * restoreRatio;
+                                viewerRef.current.dataset.restoreScroll = 0; // 초기화
+                            } else {
+                                viewerRef.current.scrollTop = 0;
+                            }
+                        }
+                    }, 100);
+
+                    setScrollProgress(0);
                     if (window.innerWidth < 768) setSidebarOpen(false);
                 }
             };
@@ -561,22 +562,7 @@
                 fetchChapterContent();
             }, [currentChapterIndex, chapters, view]);
 
-            // [추가] 콘텐츠 로드 후 스크롤 복구
-            useEffect(() => {
-                if (!isLoading && viewerRef.current && viewerRef.current.dataset.targetScroll) {
-                    const targetPercent = parseFloat(viewerRef.current.dataset.targetScroll);
-                    if (targetPercent > 0) {
-                        const { scrollHeight, clientHeight } = viewerRef.current;
-                        const totalScroll = scrollHeight - clientHeight;
-                        viewerRef.current.scrollTop = totalScroll * targetPercent;
-                    }
-                    // 복구 후 초기화
-                    viewerRef.current.dataset.targetScroll = "";
-                }
-            }, [content, isLoading]);
-
-
-            // 네비게이션 함수
+            // 네비게이션
             const handlePrev = () => { if (currentChapterIndex > 0) setCurrentChapterIndex(prev => prev - 1); };
             const handleNext = () => { if (currentChapterIndex < chapters.length - 1) setCurrentChapterIndex(prev => prev + 1); };
             const toggleSidebar = () => {
@@ -584,9 +570,10 @@
                 else setSidebarOpen(!sidebarOpen);
             };
 
-            // 10. [렌더러: 마크다운 및 텍스트 분기]
+            // 11. [렌더러] 마크다운/텍스트 분기 처리
             const renderNovelBody = () => {
                 const isMD = chapters[currentChapterIndex]?.fileName.endsWith('.md');
+                // marked 라이브러리가 로드되었는지 확인
                 if (isMD && window.marked) {
                     try {
                         return <div className="markdown-body" dangerouslySetInnerHTML={{ __html: window.marked.parse(content) }} />;
@@ -598,8 +585,10 @@
             };
 
             // --------------------------------------------------------------------------------
-            // [UI 컴포넌트 렌더링 시작]
+            // [UI 컴포넌트 렌더링]
             // --------------------------------------------------------------------------------
+            
+            // 에러 화면
             if (errorMsg) return (
                 <div className={`flex h-screen flex-col items-center justify-center p-4 ${theme.bg} ${theme.text} ${font.class}`}>
                     <div className="max-w-md w-full p-6 border border-red-300 rounded-lg bg-red-50 text-red-700 shadow-lg text-center">
@@ -609,6 +598,7 @@
                 </div>
             );
 
+            // 로딩 화면
             if (isGlobalLoading) return (
                 <div className={`flex h-screen items-center justify-center ${theme.bg} ${theme.text} ${font.class}`}>
                     <div className="text-center">
@@ -618,6 +608,7 @@
                 </div>
             );
 
+            // 메인 화면
             return (
                 <div 
                     className={`flex h-screen overflow-hidden ${theme.bg} ${theme.text} ${font.class} transition-colors duration-300`}
@@ -670,7 +661,7 @@
 
                     {/* 메인 콘텐츠 영역 */}
                     <div className="flex-1 flex flex-col h-full relative min-w-0">
-                        {/* 상단 헤더 */}
+                        {/* 헤더 */}
                         <header className={`h-16 flex items-center justify-between px-4 border-b border-black/10 sticky top-0 z-20 ${theme.ui}`}>
                             <div className="flex items-center gap-3 overflow-hidden">
                                 {view === 'reader' && <button onClick={toggleSidebar} className="p-2 rounded hover:bg-black/10 shrink-0"><Menu size={20} /></button>}
@@ -679,8 +670,8 @@
                                 </h1>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
-                                {/* 현재 시간 표시 (강화됨) */}
-                                <div className="text-sm font-bold opacity-70 mr-3 min-w-[12ch] text-right hidden sm:block select-none">{currentTime}</div>
+                                {/* 시계 (분리된 컴포넌트) */}
+                                <CurrentTimeDisplay />
 
                                 {view === 'reader' && <div className="text-xs font-mono opacity-50 mr-2 min-w-[3ch] text-right">{scrollProgress}%</div>}
                                 
@@ -696,7 +687,7 @@
                             {settingsOpen && (
                                 <div className={`absolute top-16 right-2 w-80 max-w-[95vw] p-5 rounded-xl shadow-2xl border ${theme.card} z-50 text-sm`}>
                                     <div className="space-y-5">
-                                        {/* 테마 선택 */}
+                                        {/* 테마 */}
                                         <div>
                                             <label className="text-xs font-bold opacity-60 mb-2 block uppercase">테마</label>
                                             <div className="grid grid-cols-5 gap-1 bg-black/5 p-1 rounded-lg">
@@ -707,7 +698,7 @@
                                                 ))}
                                             </div>
                                         </div>
-                                        {/* 폰트 선택 */}
+                                        {/* 폰트 */}
                                         <div>
                                             <label className="text-xs font-bold opacity-60 mb-2 block uppercase">폰트 종류</label>
                                             <div className="grid grid-cols-3 gap-2">
@@ -730,7 +721,7 @@
                                                 ))}
                                             </div>
                                         </div>
-                                        {/* 제스처 설정 */}
+                                        {/* 제스처 토글 */}
                                         <div className="pt-2 border-t border-gray-500/20">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
@@ -749,7 +740,7 @@
                             )}
                         </header>
 
-                        {/* 메인 뷰 영역 */}
+                        {/* 메인 뷰 */}
                         <main 
                             ref={viewerRef} 
                             className="flex-1 overflow-y-auto relative scroll-smooth no-scrollbar"
@@ -759,14 +750,13 @@
                             onTouchStart={handlePointerDown}
                             onTouchEnd={handlePointerUp}
                         >
-                            {/* 리스트 뷰: 소설 목록 */}
+                            {/* 리스트 뷰 */}
                             {view === 'list' && (
                                 <div className="max-w-6xl mx-auto p-4 md:p-8">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {novels.map((novel) => (
                                             <button key={novel.id} onClick={() => selectNovel(novel)} className={`group flex flex-col text-left rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all transform hover:-translate-y-1 border ${theme.card}`}>
                                                 <div className={`h-48 w-full ${themeKey === 'black' ? 'bg-gray-900' : 'bg-gray-200'} relative overflow-hidden flex items-center justify-center`}>
-                                                    {/* 이미지 로직: jpg -> png -> jpeg 순차 시도 */}
                                                     <img 
                                                         src={`./${encodeURI(novel.path)}/cover.jpg`} 
                                                         alt={novel.title}
@@ -791,7 +781,7 @@
                                 </div>
                             )}
 
-                            {/* 리더 뷰: 본문 출력 */}
+                            {/* 리더 뷰 */}
                             {view === 'reader' && (
                                 <div className="max-w-3xl mx-auto px-5 py-8 md:py-16 min-h-full flex flex-col">
                                     <div className="mb-10 pb-6 border-b border-black/10 text-center">
@@ -810,7 +800,6 @@
                                         </div>
                                     )}
                                     
-                                    {/* 하단 네비게이션 바 */}
                                     <div className="mt-20 pt-8 border-t border-black/10 flex justify-between items-center select-none">
                                         <button onClick={handlePrev} disabled={currentChapterIndex === 0} className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${currentChapterIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/5 active:bg-black/10'}`}><ChevronLeft size={20} /><span className="hidden sm:inline font-medium">이전 화</span></button>
                                         <span className="text-sm opacity-60 font-mono">{currentChapterIndex + 1} / {chapters.length}</span>
@@ -821,7 +810,7 @@
                         </main>
                     </div>
 
-                    {/* 도움말 가이드 모달 */}
+                    {/* 도움말 모달 */}
                     {helpOpen && (
                         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4" onClick={() => setHelpOpen(false)}>
                             <div className={`max-w-md w-full p-6 rounded-xl shadow-2xl relative ${theme.bg} ${theme.text}`} onClick={e => e.stopPropagation()}>
