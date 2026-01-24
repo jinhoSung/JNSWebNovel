@@ -24,7 +24,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* [보안 설정] 텍스트 선택 및 드래그 금지 (관리자는 JS에서 예외 처리) */
+        /* [보안 설정] 텍스트 선택 및 드래그 금지 (관리자는 권한 인증 후 예외 처리) */
         body { 
             margin: 0; 
             padding: 0; 
@@ -56,7 +56,7 @@
             background-color: #3b82f6;
         }
 
-        /* [커스텀 스크롤바] 테마 대응 */
+        /* [커스텀 스크롤바] */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: var(--scrollbar-track, #f1f1f1); }
         ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb, #888); border-radius: 4px; }
@@ -73,7 +73,7 @@
         .markdown-body strong, .markdown-body b { font-weight: bold !important; color: inherit; }
         .markdown-body ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
         .markdown-body ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
-        .markdown-body blockquote { border-left: 4px solid #888; padding-left: 1em; opacity: 0.7; font-style: italic; margin: 1.5em 0; }
+        .markdown-body blockquote { border-left: 4px solid #888; padding-left: 1em; opacity: 0.8; font-style: italic; margin: 1.5em 0; background: rgba(0,0,0,0.03); padding-top: 0.5em; padding-bottom: 0.5em; }
         .markdown-body hr { border: 0; border-top: 1px solid currentColor; opacity: 0.2; margin: 2em 0; }
         .markdown-body code { background: rgba(0,0,0,0.05); padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }
         .markdown-body span { color: inherit; }
@@ -151,7 +151,7 @@
         }
 
         // ----------------------------------------------------------------------
-        // [아이콘 컴포넌트]
+        // [아이콘 컴포넌트 정의]
         // ----------------------------------------------------------------------
         const Icon = ({ path, size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -164,8 +164,8 @@
         const ChevronRight = (props) => <Icon {...props} path={<path d="m9 18 6-6-6-6"/>} />;
         const Menu = (props) => <Icon {...props} path={<><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></>} />;
         
-        // 설정(Settings) 아이콘 최적화 (Fragment를 사용해 깨짐 방지)
-        const Settings = (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></>} />;
+        // 설정(Settings) 아이콘 수정
+        const Settings = (props) => <Icon {...props} path={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>} />;
         
         const XIcon = (props) => <Icon {...props} path={<><path d="M18 6 6 18"/><path d="M6 6l12 12"/></>} />;
         const Home = (props) => <Icon {...props} path={<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>} />;
@@ -178,7 +178,7 @@
         const AlertCircle = (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12" y1="16" y2="16"/></>} />;
 
         // ----------------------------------------------------------------------
-        // [시계 컴포넌트] (초 단위 독립 렌더링 최적화)
+        // [시계 컴포넌트] (초 단위 독립 렌더링)
         // ----------------------------------------------------------------------
         const CurrentTimeDisplay = memo(() => {
             const [time, setTime] = useState("");
@@ -201,10 +201,9 @@
         });
 
         // ----------------------------------------------------------------------
-        // 메인 애플리케이션 컴포넌트 (App)
+        // 메인 애플리케이션 컴포넌트
         // ----------------------------------------------------------------------
         function App() {
-            // [상태 관리]
             const [view, setView] = useState('list');
             const [novels, setNovels] = useState([]);
             const [currentNovel, setCurrentNovel] = useState(null);
@@ -224,7 +223,6 @@
             const [lastReadData, setLastReadData] = useState(null);
             const [showResumeModal, setShowResumeModal] = useState(false);
 
-            // [설정 값: LocalStorage]
             const [themeKey, setThemeKey] = useLocalStorage('jinos_theme', 'sepia');
             const [fontSize, setFontSize] = useLocalStorage('jinos_fontsize', 18);
             const [lineHeight, setLineHeight] = useLocalStorage('jinos_lineheight', 1.8);
@@ -240,13 +238,11 @@
             const font = FONTS[fontFamilyKey] || FONTS.sans;
             const isPreviewEnv = window.location.protocol === 'blob:' || window.location.hostname === '';
 
-            // [기능: 토스트 알림]
             const showToast = useCallback((msg) => {
                 setToastMsg(msg);
                 setTimeout(() => setToastMsg(""), 2000);
             }, []);
 
-            // [기능: 전체화면 토글]
             const toggleFullScreen = () => {
                 if (!document.fullscreenElement) {
                     document.documentElement.requestFullscreen().catch(() => showToast("전체화면 실패"));
@@ -255,7 +251,6 @@
                 }
             };
 
-            // [기능: 제스처 핸들러]
             const handleDoubleClick = (e) => {
                 if (!gestureEnabled) return;
                 const width = window.innerWidth;
@@ -280,18 +275,44 @@
                 }
             };
 
-            // [기능: 마크다운 -> 일반 텍스트 변환 (줄바꿈 및 포맷 보존)]
+            // [개선된 텍스트 변환기] 줄바꿈 및 하이픈, 인용구 구조 보존
             const convertMarkdownToPlainText = (md) => {
                 if (!window.marked) return md;
                 try {
+                    // marked 파서로 HTML 생성
                     const html = window.marked.parse(md);
                     const tempDiv = document.createElement("div");
+                    
+                    // 중요: 줄바꿈과 공백을 유지하도록 스타일 부여
+                    tempDiv.setAttribute('style', 'display: block; white-space: pre-wrap; width: 1000px; position: absolute; left: -9999px;');
                     tempDiv.innerHTML = html;
-                    return tempDiv.innerText;
-                } catch (e) { return md; }
+
+                    // 1. <hr> 태그를 실제 하이픈 선으로 변환
+                    const hrs = tempDiv.querySelectorAll('hr');
+                    hrs.forEach(hr => {
+                        const line = document.createTextNode("\n--------------------------------------------------\n");
+                        hr.parentNode.replaceChild(line, hr);
+                    });
+
+                    // 2. 인용구(blockquote) 앞에 '>' 기호 강제 삽입하여 시스템창 구조 복원
+                    const bqs = tempDiv.querySelectorAll('blockquote');
+                    bqs.forEach(bq => {
+                        const originalText = bq.innerText;
+                        const quotedText = originalText.split('\n').map(l => l.trim() ? `> ${l}` : `>`).join('\n');
+                        bq.innerText = quotedText;
+                    });
+
+                    // 3. 브라우저의 innerText 기능을 이용하여 렌더링된 텍스트 추출 (줄바꿈이 자연스럽게 포함됨)
+                    document.body.appendChild(tempDiv);
+                    const cleanText = tempDiv.innerText;
+                    document.body.removeChild(tempDiv);
+
+                    return cleanText;
+                } catch (e) {
+                    return md;
+                }
             };
 
-            // [기능: 클립보드 복사]
             const copyToClipboard = (text) => {
                 try {
                     const el = copyAreaRef.current;
@@ -305,7 +326,6 @@
             const handleQuickCopy = async (e, chapter) => {
                 e.stopPropagation();
                 if (!isAdmin) return;
-                
                 showToast(`${chapter.id}화 텍스트 변환 중...`);
                 try {
                     const response = await fetch(chapter.downloadUrl);
@@ -463,7 +483,7 @@
                 <div className={`flex h-screen items-center justify-center ${theme.bg} ${theme.text}`}>
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-current mx-auto mb-4 opacity-50"></div>
-                        <p className="font-bold font-sans-kr">서재 정보를 가져오는 중...</p>
+                        <p className="font-bold font-sans-kr text-current">서재 정보를 가져오는 중...</p>
                     </div>
                 </div>
             );
@@ -488,10 +508,10 @@
                     {showResumeModal && lastReadData && view === 'list' && (
                         <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4 bg-black/40" onClick={() => setShowResumeModal(false)}>
                             <div className={`w-full max-w-md p-6 rounded-2xl animate-slide-up ${theme.bg} ${theme.text} border border-gray-500/10 shadow-2xl`} onClick={e => e.stopPropagation()}>
-                                <h3 className="text-lg font-bold mb-4 font-sans-kr">읽던 소설이 있습니다</h3>
-                                <p className="mb-6 opacity-70 text-sm">{lastReadData.novelTitle} - {lastReadData.chapterTitle}</p>
+                                <h3 className="text-lg font-bold mb-4 font-sans-kr text-current">읽던 소설이 있습니다</h3>
+                                <p className="mb-6 opacity-70 text-sm text-current">{lastReadData.novelTitle} - {lastReadData.chapterTitle}</p>
                                 <div className="flex gap-2 font-sans-kr">
-                                    <button onClick={() => setShowResumeModal(false)} className="flex-1 py-3 rounded-lg bg-black/5 font-bold">아니오</button>
+                                    <button onClick={() => setShowResumeModal(false)} className="flex-1 py-3 rounded-lg bg-black/5 font-bold text-current">아니오</button>
                                     <button onClick={() => { setShowResumeModal(false); selectNovel({id:lastReadData.novelId, title:lastReadData.novelTitle, path:lastReadData.novelPath}, lastReadData.chapterIndex, lastReadData.scrollRatio); }} className="flex-1 py-3 rounded-lg bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/30">이어보기</button>
                                 </div>
                             </div>
@@ -502,12 +522,12 @@
                         <>
                             {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-[90] md:hidden" onClick={() => setSidebarOpen(false)}></div>}
                             <div className={`fixed md:relative inset-y-0 left-0 z-[100] w-72 flex flex-col border-r transition-all duration-300 ${theme.ui} ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${desktopSidebarVisible ? 'md:translate-x-0 md:w-72' : 'md:w-0 md:overflow-hidden md:border-r-0'}`}>
-                                <div className="p-4 border-b flex justify-between items-center h-16 shrink-0 font-bold"><span className="truncate">{currentNovel?.title}</span><button onClick={() => setSidebarOpen(false)} className="md:hidden"><XIcon size={20}/></button></div>
-                                <button onClick={() => setView('list')} className="p-4 flex items-center gap-2 border-b opacity-70 text-sm font-bold hover:bg-black/5"><Home size={16}/> 서재로 돌아가기</button>
+                                <div className="p-4 border-b flex justify-between items-center h-16 shrink-0 font-bold text-current"><span className="truncate">{currentNovel?.title}</span><button onClick={() => setSidebarOpen(false)} className="md:hidden"><XIcon size={20}/></button></div>
+                                <button onClick={() => setView('list')} className="p-4 flex items-center gap-2 border-b opacity-70 text-sm font-bold hover:bg-black/5 text-current"><Home size={16}/> 서재로 돌아가기</button>
                                 <div className="flex-1 overflow-y-auto p-2">
                                     {chapters.map((c, i) => (
                                         <div key={i} className="relative group">
-                                            <button onClick={() => setCurrentChapterIndex(i)} className={`w-full text-left p-3 pr-10 rounded-lg mb-1 text-sm ${currentChapterIndex === i ? theme.activeItem : 'hover:bg-black/5 opacity-80'}`}>
+                                            <button onClick={() => setCurrentChapterIndex(i)} className={`w-full text-left p-3 pr-10 rounded-lg mb-1 text-sm ${currentChapterIndex === i ? theme.activeItem : 'hover:bg-black/5 opacity-80 text-current'}`}>
                                                 <span className="text-xs opacity-50 block mb-0.5">#{i + 1}</span><span className="truncate block font-medium">{c.title}</span>
                                             </button>
                                             {isAdmin && (
@@ -525,22 +545,21 @@
                     <div className="flex-1 flex flex-col h-full min-w-0">
                         <header className={`h-16 flex items-center justify-between px-4 border-b sticky top-0 z-20 ${theme.ui}`}>
                             <div className="flex items-center gap-3 overflow-hidden">
-                                {view === 'reader' && <button onClick={toggleSidebar} className="p-2 rounded hover:bg-black/10 shrink-0"><Menu size={20}/></button>}
-                                <h1 className="font-bold text-lg truncate font-sans-kr">{view === 'list' ? '나의 서재' : chapters[currentChapterIndex]?.title}</h1>
+                                {view === 'reader' && <button onClick={toggleSidebar} className="p-2 rounded hover:bg-black/10 shrink-0 text-current"><Menu size={20}/></button>}
+                                <h1 className="font-bold text-lg truncate font-sans-kr text-current">{view === 'list' ? '나의 서재' : chapters[currentChapterIndex]?.title}</h1>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                                 <CurrentTimeDisplay />
                                 {view === 'reader' && (
                                     <>
-                                        <div className="text-xs font-mono opacity-50 mr-2">{scrollProgress}%</div>
+                                        <div className="text-xs font-mono opacity-50 mr-2 text-current">{scrollProgress}%</div>
                                         {isAdmin && <button onClick={() => copyToClipboard(convertMarkdownToPlainText(content))} className="p-2 rounded-full hover:bg-black/5 text-blue-600" title="현재 본문 텍스트 복사"><Copy size={20}/></button>}
                                     </>
                                 )}
-                                <button onClick={toggleFullScreen} className="p-2 rounded-full hover:bg-black/5 text-gray-500" title="전체화면">{isFullScreen ? <Minimize size={20}/> : <Maximize size={20}/>}</button>
-                                <button onClick={() => setSettingsOpen(!settingsOpen)} className={`p-2 rounded-full transition-colors ${settingsOpen ? 'bg-black/10' : 'hover:bg-black/5'}`}><Settings size={20}/></button>
+                                <button onClick={toggleFullScreen} className="p-2 rounded-full hover:bg-black/5 text-current" title="전체화면">{isFullScreen ? <Minimize size={20}/> : <Maximize size={20}/>}</button>
+                                <button onClick={() => setSettingsOpen(!settingsOpen)} className={`p-2 rounded-full transition-colors ${settingsOpen ? 'bg-black/10 text-current' : 'hover:bg-black/5 text-current'}`}><Settings size={20}/></button>
                             </div>
 
-                            {/* 설정 팝업 */}
                             {settingsOpen && (
                                 <div className={`absolute top-16 right-2 w-80 p-5 rounded-xl shadow-2xl border z-[200] text-sm ${theme.card}`}>
                                     <div className="space-y-5 font-sans-kr">
@@ -551,24 +570,23 @@
                                         </div>
                                         <div><label className="text-xs font-bold opacity-60 mb-2 block uppercase text-current">폰트 종류</label>
                                             <div className="grid grid-cols-3 gap-2">
-                                                {Object.entries(FONTS).map(([k, v]) => (<button key={k} onClick={() => setFontFamilyKey(k)} className={`py-2 rounded border text-xs ${fontFamilyKey === k ? 'border-blue-500 text-blue-700 font-bold bg-blue-50' : 'border-gray-300 opacity-70 hover:opacity-100'}`}>{v.name.split('(')[0]}</button>))}
+                                                {Object.entries(FONTS).map(([k, v]) => (<button key={k} onClick={() => setFontFamilyKey(k)} className={`py-2 rounded border text-xs ${fontFamilyKey === k ? 'border-blue-500 text-blue-700 font-bold bg-blue-50' : 'border-gray-300 opacity-70 hover:opacity-100 text-current'}`}>{v.name.split('(')[0]}</button>))}
                                             </div>
                                         </div>
                                         <div><label className="text-xs font-bold opacity-60 mb-2 flex justify-between uppercase text-current"><span>글자 크기</span><span>{fontSize}px</span></label>
                                             <input type="range" min="12" max="32" value={fontSize} onChange={e => setFontSize(Number(e.target.value))} className="w-full accent-blue-500 cursor-pointer" />
                                         </div>
                                         <div><label className="text-xs font-bold opacity-60 mb-2 block uppercase text-current">줄 간격</label>
-                                            <div className="flex gap-2 p-1 rounded-lg bg-black/5">
+                                            <div className="flex gap-2 p-1 rounded-lg bg-black/5 text-current">
                                                 {[1.4, 1.8, 2.4].map(lh => <button key={lh} onClick={() => setLineHeight(lh)} className={`flex-1 py-1 rounded text-xs ${lineHeight === lh ? 'bg-white shadow text-black font-bold' : 'hover:bg-black/5 opacity-50'}`}>{lh}</button>)}
                                             </div>
                                         </div>
-                                        <div className="pt-2 border-t flex items-center justify-between">
-                                            <div className="flex items-center gap-2"><MousePointerClick size={16} className="opacity-60"/><span className="font-bold opacity-80 text-current">제스처 이동</span></div>
+                                        <div className="pt-2 border-t flex items-center justify-between text-current">
+                                            <div className="flex items-center gap-2"><MousePointerClick size={16} className="opacity-60"/><span className="font-bold opacity-80">제스처 이동</span></div>
                                             <input type="checkbox" checked={gestureEnabled} onChange={e => setGestureEnabled(e.target.checked)} className="toggle-checkbox h-5 w-10 cursor-pointer"/>
                                         </div>
-                                        {/* 관리자 인증 (텍스트 추출용) */}
-                                        <div className="pt-2 border-t">
-                                            <label className="text-xs font-bold opacity-60 mb-2 block text-current">관리자 모드 (추출 전용)</label>
+                                        <div className="pt-2 border-t text-current">
+                                            <label className="text-xs font-bold opacity-60 mb-2 block">관리자 모드 (추출 전용)</label>
                                             {isAdmin ? (
                                                 <div className="flex items-center justify-between bg-blue-50 p-2 rounded border border-blue-200">
                                                     <span className="text-blue-700 text-xs font-bold">인증 완료</span>
@@ -588,7 +606,7 @@
 
                         <main 
                             ref={viewerRef} 
-                            className="flex-1 overflow-y-auto relative scroll-smooth" 
+                            className="flex-1 overflow-y-auto relative scroll-smooth text-current" 
                             onDoubleClick={handleDoubleClick} 
                             onMouseDown={handlePointerDown} 
                             onMouseUp={handlePointerUp} 
@@ -608,7 +626,7 @@
                                                 }}/>
                                                 <div className="hidden absolute inset-0 items-center justify-center opacity-30 text-gray-400"><ImageIcon size={48}/></div>
                                             </div>
-                                            <div className="p-4 flex-1 flex flex-col justify-center"><h3 className="font-bold text-lg mb-1 line-clamp-2 text-current">{n.title}</h3><span className="text-sm opacity-60 flex items-center gap-1"><Book size={14}/>소설 읽기</span></div>
+                                            <div className="p-4 flex-1 flex flex-col justify-center"><h3 className="font-bold text-lg mb-1 line-clamp-2 text-current">{n.title}</h3><span className="text-sm opacity-60 flex items-center gap-1 text-current"><Book size={14}/>소설 읽기</span></div>
                                         </button>
                                     ))}
                                     {novels.length === 0 && !isGlobalLoading && <div className="col-span-full text-center py-20 opacity-50 font-sans-kr text-current">소설 목록이 비어있습니다.</div>}
@@ -626,12 +644,12 @@
                                         </div>
                                     )}
                                     <div className="mt-20 pt-8 border-t border-black/10 flex justify-between items-center select-none font-sans-kr">
-                                        <button onClick={handlePrev} disabled={currentChapterIndex === 0} className={`p-2 px-4 rounded-lg transition-colors flex items-center gap-2 ${currentChapterIndex === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-black/5 active:bg-black/10'}`}>
-                                            <ChevronLeft size={20}/><span className="hidden sm:inline font-bold text-current">이전 화</span>
+                                        <button onClick={handlePrev} disabled={currentChapterIndex === 0} className={`p-2 px-4 rounded-lg transition-colors flex items-center gap-2 ${currentChapterIndex === 0 ? 'opacity-20 cursor-not-allowed text-current' : 'hover:bg-black/5 active:bg-black/10 text-current'}`}>
+                                            <ChevronLeft size={20}/><span className="hidden sm:inline font-bold">이전 화</span>
                                         </button>
                                         <span className="font-mono text-sm opacity-60 font-bold text-current">{currentChapterIndex + 1} / {chapters.length}</span>
-                                        <button onClick={handleNext} disabled={currentChapterIndex === chapters.length - 1} className={`p-2 px-4 rounded-lg transition-colors flex items-center gap-2 ${currentChapterIndex === chapters.length - 1 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-black/5 active:bg-black/10'}`}>
-                                            <span className="hidden sm:inline font-bold text-current">다음 화</span><ChevronRight size={20}/>
+                                        <button onClick={handleNext} disabled={currentChapterIndex === chapters.length - 1} className={`p-2 px-4 rounded-lg transition-colors flex items-center gap-2 ${currentChapterIndex === chapters.length - 1 ? 'opacity-20 cursor-not-allowed text-current' : 'hover:bg-black/5 active:bg-black/10 text-current'}`}>
+                                            <span className="hidden sm:inline font-bold">다음 화</span><ChevronRight size={20}/>
                                         </button>
                                     </div>
                                 </div>
