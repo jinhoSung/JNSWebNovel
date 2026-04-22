@@ -245,7 +245,7 @@
                 } catch (e) { return md; }
             };
 
-            // [기능: 텍스트 클립보드 복사 유틸]
+            // [기능: 텍스트 클립보드 복사]
             const copyToClipboard = (text, successMsg = "텍스트가 복사되었습니다.") => {
                 try {
                     const el = copyAreaRef.current;
@@ -256,7 +256,13 @@
                 } catch (err) { showToast("복사 실패"); }
             };
 
-            // [기능: 회차 목록 즉시 텍스트 복사 (관리자)]
+            // [기능: 현재 URL 링크 복사]
+            const handleCopyLink = () => {
+                const url = window.location.href;
+                copyToClipboard(url, "현재 위치의 링크가 복사되었습니다.");
+            };
+
+            // [기능: 회차 목록 즉시 복사 (관리자)]
             const handleQuickCopy = async (e, chapter) => {
                 e.stopPropagation();
                 if (!isAdmin) return;
@@ -267,12 +273,6 @@
                     const rawMd = await response.text();
                     copyToClipboard(convertMarkdownToPlainText(rawMd), "본문 내용이 클립보드에 복사되었습니다.");
                 } catch (err) { showToast("로드 실패"); }
-            };
-
-            // [기능: 현재 링크 복사]
-            const handleCopyLink = () => {
-                const url = window.location.href;
-                copyToClipboard(url, "현재 위치의 링크가 복사되었습니다.");
             };
 
             // [기능: 이어보기 저장 로직]
@@ -334,10 +334,10 @@
                             const targetNovel = fetchedNovels.find(n => n.path === queryNovelPath);
                             if (targetNovel) {
                                 if (hasChapterQuery) {
-                                    // 소설 이름 + 회차: 해당 회차 최상단으로 즉시 점프 (이어보기 무시)
+                                    // URL에 회차가 지정되어 있으면 즉시 해당 회차(인덱스)로 이동
                                     selectNovel(targetNovel, queryChapter, 0);
                                 } else {
-                                    // 소설 이름만: 로컬스토리지를 검사해 해당 소설의 이전 열람 위치로 복원
+                                    // URL에 회차가 없으면 이어보기 데이터 검사
                                     const saved = localStorage.getItem('jinos_last_read');
                                     let targetIdx = 0;
                                     let targetRatio = 0;
@@ -350,11 +350,11 @@
                                     }
                                     selectNovel(targetNovel, targetIdx, targetRatio);
                                 }
-                                return; // URL로 진입 시 모달을 띄우지 않음
+                                return; // URL로 진입 시 이어보기 모달창 스킵
                             }
                         }
 
-                        // 일반 진입 시 이어보기 모달 체크
+                        // 일반 진입 시 로컬 스토리지 이어보기 모달 체크
                         const savedRead = localStorage.getItem('jinos_last_read');
                         if (savedRead) {
                             const parsed = JSON.parse(savedRead);
@@ -368,7 +368,7 @@
                 initializeApp();
             }, []);
 
-            // https://m.kpedia.jp/w/5351
+            // https://play.google.com/store/apps/details?id=com.devforplayapp.livemobilelocation&hl=ko
             useEffect(() => {
                 if (isPreviewEnv) return;
                 try {
@@ -378,7 +378,7 @@
                     } else if (view === 'list') {
                         window.history.replaceState(null, '', window.location.pathname);
                     }
-                } catch (e) { /* iframe 보안 처리 */ }
+                } catch (e) { /* iframe 내 보안 예외 처리 */ }
             }, [view, currentNovel, currentChapterIndex, isPreviewEnv]);
 
             const selectNovel = async (novel, targetIndex = 0, targetRatio = 0) => {
@@ -403,7 +403,10 @@
                             return { id: chapterNum, title: `제${chapterNum}화 - ${titlePart || "제목 없음"}`, downloadUrl: file.download_url, fileName: file.name };
                         }).sort((a, b) => a.id - b.id);
                         setChapters(loaded);
-                        setCurrentChapterIndex(targetIndex < loaded.length ? targetIndex : 0);
+                        
+                        // 타겟 인덱스 방어 로직
+                        const finalIndex = (targetIndex >= 0 && targetIndex < loaded.length) ? targetIndex : 0;
+                        setCurrentChapterIndex(finalIndex);
                     }
                 } catch (error) { showToast("목록을 불러오지 못했습니다."); } 
                 finally { setIsLoading(false); }
@@ -573,7 +576,7 @@
                                                 <span className="text-xs opacity-50 block mb-0.5">#{i + 1}</span><span className="truncate block font-medium">{c.title}</span>
                                             </button>
                                             {isAdmin && (
-                                                <button onClick={(e) => handleQuickCopy(e, c)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-500 hover:text-white rounded-full">
+                                                <button onClick={(e) => handleQuickCopy(e, c)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-500 hover:text-white rounded-full" title="변환 복사">
                                                     <Copy size={16} />
                                                 </button>
                                             )}
@@ -595,42 +598,41 @@
                                 {view === 'reader' && (
                                     <>
                                         <div className="text-xs font-mono opacity-50 mr-2">{scrollProgress}%</div>
-                                        <button onClick={handleCopyLink} className="p-2 rounded-full hover:bg-black/5 text-gray-500" title="현재 링크 복사"><LinkIcon size={20}/></button>
-                                        {isAdmin && <button onClick={() => copyToClipboard(convertMarkdownToPlainText(content), "본문 텍스트가 복사되었습니다.")} className="p-2 rounded-full hover:bg-black/5 text-blue-600" title="본문 텍스트 복사"><Copy size={20}/></button>}
+                                        <button onClick={handleCopyLink} className="p-2 rounded-full hover:bg-black/5 text-gray-500" title="링크 복사"><LinkIcon size={20}/></button>
+                                        {isAdmin && <button onClick={() => copyToClipboard(convertMarkdownToPlainText(content), "본문 텍스트가 복사되었습니다.")} className="p-2 rounded-full hover:bg-black/5 text-blue-600" title="본문 복사"><Copy size={20}/></button>}
                                     </>
                                 )}
-                                <button onClick={toggleFullScreen} className="p-2 rounded-full hover:bg-black/5 text-gray-500" title="전체화면">{isFullScreen ? <Minimize size={20}/> : <Maximize size={20}/>}</button>
-                                <button onClick={() => setSettingsOpen(!settingsOpen)} className={`p-2 rounded-full transition-colors ${settingsOpen ? 'bg-black/10' : 'hover:bg-black/5'}`} title="설정"><Settings size={20}/></button>
+                                <button onClick={toggleFullScreen} className="p-2 rounded-full hover:bg-black/5 text-gray-500"><Maximize size={20}/></button>
+                                <button onClick={() => setSettingsOpen(!settingsOpen)} className={`p-2 rounded-full transition-colors ${settingsOpen ? 'bg-black/10' : 'hover:bg-black/5'}`}><Settings size={20}/></button>
                             </div>
 
-                            {/* 설정 팝업 */}
                             {settingsOpen && (
                                 <div className={`absolute top-16 right-2 w-80 p-5 rounded-xl shadow-2xl border z-[200] text-sm ${theme.card}`}>
                                     <div className="space-y-5 font-sans-kr">
-                                        <div><label className="text-xs font-bold opacity-60 mb-2 block uppercase text-current">테마</label>
+                                        <div><label className="text-xs font-bold opacity-60 mb-2 block uppercase">테마</label>
                                             <div className="grid grid-cols-5 gap-1 p-1 rounded-lg bg-black/5">
                                                 {Object.values(THEMES).map(t => (<button key={t.id} onClick={() => setThemeKey(t.id)} className={`h-8 rounded flex items-center justify-center ${themeKey === t.id ? 'ring-2 ring-blue-500' : ''}`} style={{background: t.id === 'black' ? '#000' : (t.id === 'sepia' ? '#f4ecd8' : (t.id === 'dark' ? '#1a1a1a' : (t.id === 'green' ? '#e0f2f1' : '#fff')))}}></button>))}
                                             </div>
                                         </div>
-                                        <div><label className="text-xs font-bold opacity-60 mb-2 block uppercase text-current font-sans">폰트 종류</label>
+                                        <div><label className="text-xs font-bold opacity-60 mb-2 block uppercase">폰트 종류</label>
                                             <div className="grid grid-cols-3 gap-2">
                                                 {Object.entries(FONTS).map(([k, v]) => (<button key={k} onClick={() => setFontFamilyKey(k)} className={`py-2 rounded border text-xs ${fontFamilyKey === k ? 'border-blue-500 text-blue-700 font-bold bg-blue-50' : 'border-gray-300 opacity-70 hover:opacity-100'}`}>{v.name.split('(')[0]}</button>))}
                                             </div>
                                         </div>
-                                        <div><label className="text-xs font-bold opacity-60 mb-2 flex justify-between uppercase text-current"><span>글자 크기</span><span>{fontSize}px</span></label>
+                                        <div><label className="text-xs font-bold opacity-60 mb-2 flex justify-between uppercase"><span>글자 크기</span><span>{fontSize}px</span></label>
                                             <input type="range" min="14" max="32" value={fontSize} onChange={e => setFontSize(Number(e.target.value))} className="w-full accent-blue-500 cursor-pointer" />
                                         </div>
-                                        <div><label className="text-xs font-bold opacity-60 mb-2 block uppercase text-current">줄 간격</label>
+                                        <div><label className="text-xs font-bold opacity-60 mb-2 block uppercase">줄 간격</label>
                                             <div className="flex gap-2 p-1 rounded-lg bg-black/5">
                                                 {[1.4, 1.8, 2.4].map(lh => <button key={lh} onClick={() => setLineHeight(lh)} className={`flex-1 py-1 rounded text-xs ${lineHeight === lh ? 'bg-white shadow text-black font-bold' : 'hover:bg-black/5 opacity-50'}`}>{lh}</button>)}
                                             </div>
                                         </div>
                                         <div className="pt-2 border-t flex items-center justify-between">
-                                            <div className="flex items-center gap-2"><MousePointerClick size={16} className="opacity-60"/><span className="font-bold opacity-80 text-current">제스처 이동</span></div>
+                                            <div className="flex items-center gap-2"><MousePointerClick size={16} className="opacity-60"/><span className="font-bold opacity-80">제스처 이동</span></div>
                                             <input type="checkbox" checked={gestureEnabled} onChange={e => setGestureEnabled(e.target.checked)} className="toggle-checkbox h-5 w-10 cursor-pointer"/>
                                         </div>
                                         <div className="pt-2 border-t">
-                                            <label className="text-xs font-bold opacity-60 mb-2 block text-current">관리자 모드 (추출 전용)</label>
+                                            <label className="text-xs font-bold opacity-60 mb-2 block">관리자 모드 (추출 전용)</label>
                                             {isAdmin ? (
                                                 <div className="flex items-center justify-between bg-blue-50 p-2 rounded border border-blue-200">
                                                     <span className="text-blue-700 text-xs font-bold">인증 완료</span>
@@ -648,15 +650,7 @@
                             )}
                         </header>
 
-                        <main 
-                            ref={viewerRef} 
-                            className="flex-1 overflow-y-auto relative scroll-smooth text-current" 
-                            onDoubleClick={handleDoubleClick} 
-                            onMouseDown={handlePointerDown} 
-                            onMouseUp={handlePointerUp} 
-                            onTouchStart={handlePointerDown} 
-                            onTouchEnd={handlePointerUp}
-                        >
+                        <main ref={viewerRef} className="flex-1 overflow-y-auto relative scroll-smooth" onDoubleClick={handleDoubleClick} onMouseDown={handlePointerDown} onMouseUp={handlePointerUp} onTouchStart={handlePointerDown} onTouchEnd={handlePointerUp}>
                             {view === 'list' ? (
                                 <div className="max-w-6xl mx-auto p-4 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {novels.map(n => (
@@ -670,30 +664,29 @@
                                                 }}/>
                                                 <ImageIcon size={48} className="absolute opacity-20"/>
                                             </div>
-                                            <div className="p-4 flex-1 flex flex-col justify-center"><h3 className="font-bold text-lg mb-1 line-clamp-2 text-current">{n.title}</h3><span className="text-sm opacity-60 flex items-center gap-1 text-current"><Book size={14}/>소설 읽기</span></div>
+                                            <div className="p-4 flex-1 flex flex-col justify-center"><h3 className="font-bold text-lg mb-1 line-clamp-2">{n.title}</h3><span className="text-sm opacity-60 flex items-center gap-1"><Book size={14}/>소설 읽기</span></div>
                                         </button>
                                     ))}
-                                    {novels.length === 0 && !isGlobalLoading && <div className="col-span-full text-center py-20 opacity-50 font-sans-kr text-current">소설 목록이 비어있습니다.</div>}
                                 </div>
                             ) : (
                                 <div className="max-w-3xl mx-auto px-5 py-8 md:py-16 min-h-full flex flex-col">
                                     <div className="mb-10 pb-6 border-b text-center border-black/10">
-                                        <h2 className="text-2xl md:text-3xl font-bold leading-tight text-current">{chapters[currentChapterIndex]?.title}</h2>
+                                        <h2 className="text-2xl md:text-3xl font-bold leading-tight">{chapters[currentChapterIndex]?.title}</h2>
                                     </div>
                                     {isLoading ? (
-                                        <div className="flex-1 flex justify-center py-20 animate-pulse font-bold opacity-50 text-sm text-current">본문 로딩 중...</div>
+                                        <div className="flex-1 flex justify-center py-20 animate-pulse font-bold opacity-50 text-sm">본문 로딩 중...</div>
                                     ) : (
-                                        <div className="outline-none text-current" style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight }}>
+                                        <div className="outline-none" style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight }}>
                                             {renderNovelBody()}
                                         </div>
                                     )}
                                     <div className="mt-20 pt-8 border-t border-black/10 flex justify-between items-center select-none font-sans-kr">
-                                        <button onClick={handlePrev} disabled={currentChapterIndex === 0} className={`p-2 px-4 rounded-lg transition-colors flex items-center gap-2 ${currentChapterIndex === 0 ? 'opacity-20 cursor-not-allowed text-current' : 'hover:bg-black/5 active:bg-black/10 text-current'}`}>
-                                            <ChevronLeft size={20}/><span className="hidden sm:inline font-bold">이전 화</span>
+                                        <button onClick={handlePrev} disabled={currentChapterIndex === 0} className={`p-2 px-4 rounded-lg transition-colors flex items-center gap-2 ${currentChapterIndex === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-black/5 active:bg-black/10'}`}>
+                                            <ChevronLeft size={20}/><span>이전 화</span>
                                         </button>
-                                        <span className="font-mono text-sm opacity-60 font-bold text-current">{currentChapterIndex + 1} / {chapters.length}</span>
-                                        <button onClick={handleNext} disabled={currentChapterIndex === chapters.length - 1} className={`p-2 px-4 rounded-lg transition-colors flex items-center gap-2 ${currentChapterIndex === chapters.length - 1 ? 'opacity-20 cursor-not-allowed text-current' : 'hover:bg-black/5 active:bg-black/10 text-current'}`}>
-                                            <span className="hidden sm:inline font-bold">다음 화</span><ChevronRight size={20}/>
+                                        <span className="font-mono text-sm opacity-60 font-bold">{currentChapterIndex + 1} / {chapters.length}</span>
+                                        <button onClick={handleNext} disabled={currentChapterIndex === chapters.length - 1} className={`p-2 px-4 rounded-lg transition-colors flex items-center gap-2 ${currentChapterIndex === chapters.length - 1 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-black/5 active:bg-black/10'}`}>
+                                            <span>다음 화</span><ChevronRight size={20}/>
                                         </button>
                                     </div>
                                 </div>
