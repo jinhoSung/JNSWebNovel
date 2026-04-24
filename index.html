@@ -5,20 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Jinos 웹소설</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Markdown Parser -->
     <script src="https://unpkg.com/marked@4.3.0/marked.min.js"></script>
 
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -91,7 +86,7 @@
         const { useState, useEffect, useRef, useMemo, memo, useCallback } = React;
 
         // ----------------------------------------------------------------------
-        // [1. 설정 및 상수]
+        // [1. 상수 및 설정 정의]
         // ----------------------------------------------------------------------
         const GITHUB_CONFIG = {
             owner: "jinhoSung",
@@ -245,8 +240,8 @@
                 } catch (e) { return md; }
             };
 
-            // [기능: 텍스트 클립보드 복사]
-            const copyToClipboard = (text, successMsg = "텍스트가 복사되었습니다.") => {
+            // [강화된 복사 로직] 최신 클립보드 API 사용 + 이전 방식 Fallback
+            const fallbackCopy = (text, successMsg) => {
                 try {
                     const el = copyAreaRef.current;
                     el.value = text;
@@ -256,10 +251,27 @@
                 } catch (err) { showToast("복사 실패"); }
             };
 
-            // [기능: 현재 URL 링크 복사]
+            const copyToClipboard = (text, successMsg = "복사되었습니다.") => {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text)
+                        .then(() => showToast(successMsg))
+                        .catch(() => fallbackCopy(text, successMsg)); // 권한 문제시 폴백
+                } else {
+                    fallbackCopy(text, successMsg);
+                }
+            };
+
+            // [기능: 명시적 URL 링크 생성 및 복사]
             const handleCopyLink = () => {
-                const url = window.location.href;
-                copyToClipboard(url, "현재 위치의 링크가 복사되었습니다.");
+                let urlToCopy = window.location.href; // 기본값
+                
+                if (view === 'reader' && currentNovel) {
+                    // 현재 URL의 base 부분 (query string 제외)
+                    const baseUrl = window.location.origin + window.location.pathname;
+                    urlToCopy = `${baseUrl}?novel=${encodeURIComponent(currentNovel.path)}&chapter=${currentChapterIndex}`;
+                }
+                
+                copyToClipboard(urlToCopy, "현재 링크가 복사되었습니다.");
             };
 
             // [기능: 회차 목록 즉시 복사 (관리자)]
@@ -271,7 +283,7 @@
                     const response = await fetch(chapter.downloadUrl);
                     if (!response.ok) throw new Error();
                     const rawMd = await response.text();
-                    copyToClipboard(convertMarkdownToPlainText(rawMd), "본문 내용이 클립보드에 복사되었습니다.");
+                    copyToClipboard(convertMarkdownToPlainText(rawMd), "본문 텍스트가 복사되었습니다.");
                 } catch (err) { showToast("로드 실패"); }
             };
 
@@ -334,10 +346,8 @@
                             const targetNovel = fetchedNovels.find(n => n.path === queryNovelPath);
                             if (targetNovel) {
                                 if (hasChapterQuery) {
-                                    // URL에 회차가 지정되어 있으면 즉시 해당 회차(인덱스)로 이동
                                     selectNovel(targetNovel, queryChapter, 0);
                                 } else {
-                                    // URL에 회차가 없으면 이어보기 데이터 검사
                                     const saved = localStorage.getItem('jinos_last_read');
                                     let targetIdx = 0;
                                     let targetRatio = 0;
@@ -350,11 +360,10 @@
                                     }
                                     selectNovel(targetNovel, targetIdx, targetRatio);
                                 }
-                                return; // URL로 진입 시 이어보기 모달창 스킵
+                                return;
                             }
                         }
 
-                        // 일반 진입 시 로컬 스토리지 이어보기 모달 체크
                         const savedRead = localStorage.getItem('jinos_last_read');
                         if (savedRead) {
                             const parsed = JSON.parse(savedRead);
@@ -378,7 +387,7 @@
                     } else if (view === 'list') {
                         window.history.replaceState(null, '', window.location.pathname);
                     }
-                } catch (e) { /* iframe 내 보안 예외 처리 */ }
+                } catch (e) {}
             }, [view, currentNovel, currentChapterIndex, isPreviewEnv]);
 
             const selectNovel = async (novel, targetIndex = 0, targetRatio = 0) => {
@@ -404,7 +413,6 @@
                         }).sort((a, b) => a.id - b.id);
                         setChapters(loaded);
                         
-                        // 타겟 인덱스 방어 로직
                         const finalIndex = (targetIndex >= 0 && targetIndex < loaded.length) ? targetIndex : 0;
                         setCurrentChapterIndex(finalIndex);
                     }
@@ -576,7 +584,7 @@
                                                 <span className="text-xs opacity-50 block mb-0.5">#{i + 1}</span><span className="truncate block font-medium">{c.title}</span>
                                             </button>
                                             {isAdmin && (
-                                                <button onClick={(e) => handleQuickCopy(e, c)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-500 hover:text-white rounded-full" title="변환 복사">
+                                                <button onClick={(e) => handleQuickCopy(e, c)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-500 hover:text-white rounded-full" title="본문 텍스트 복사">
                                                     <Copy size={16} />
                                                 </button>
                                             )}
@@ -598,7 +606,7 @@
                                 {view === 'reader' && (
                                     <>
                                         <div className="text-xs font-mono opacity-50 mr-2">{scrollProgress}%</div>
-                                        <button onClick={handleCopyLink} className="p-2 rounded-full hover:bg-black/5 text-gray-500" title="링크 복사"><LinkIcon size={20}/></button>
+                                        <button onClick={handleCopyLink} className="p-2 rounded-full hover:bg-black/5 text-gray-500" title="현재 링크 복사"><LinkIcon size={20}/></button>
                                         {isAdmin && <button onClick={() => copyToClipboard(convertMarkdownToPlainText(content), "본문 텍스트가 복사되었습니다.")} className="p-2 rounded-full hover:bg-black/5 text-blue-600" title="본문 복사"><Copy size={20}/></button>}
                                     </>
                                 )}
@@ -640,7 +648,7 @@
                                                 </div>
                                             ) : (
                                                 <div className="flex gap-1">
-                                                    <input type="password" value={adminPwInput} onChange={e => setAdminPwInput(e.target.value)} placeholder="암호" className="flex-1 p-2 rounded border border-gray-300 text-xs text-black" />
+                                                    <input type="password" value={adminPwInput} onChange={e => setAdminPwInput(e.target.value)} placeholder="암호 입력" className="flex-1 p-2 rounded border border-gray-300 text-xs text-black" />
                                                     <button onClick={handleAdminAuth} className="bg-gray-800 text-white px-3 py-1 rounded text-xs hover:bg-black font-bold">인증</button>
                                                 </div>
                                             )}
@@ -674,7 +682,7 @@
                                         <h2 className="text-2xl md:text-3xl font-bold leading-tight">{chapters[currentChapterIndex]?.title}</h2>
                                     </div>
                                     {isLoading ? (
-                                        <div className="flex-1 flex justify-center py-20 animate-pulse font-bold opacity-50 text-sm">본문 로딩 중...</div>
+                                        <div className="flex-1 flex justify-center py-20 animate-pulse font-bold opacity-50">본문 로딩 중...</div>
                                     ) : (
                                         <div className="outline-none" style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight }}>
                                             {renderNovelBody()}
