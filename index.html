@@ -397,7 +397,9 @@
 
             // https://play.google.com/store/apps/details?id=com.devforplayapp.livemobilelocation&hl=ko
             useEffect(() => {
-                if (isPreviewEnv) return;
+                // 초기 로딩 중에는 URL의 딥링크 파라미터를 지우면 안 된다.
+                // initializeApp()이 GitHub 소설 목록을 받아온 뒤 이 값을 읽어야 한다.
+                if (isPreviewEnv || isGlobalLoading) return;
                 try {
                     if (view === 'reader' && currentNovel && chapters[currentChapterIndex]) {
                         const novelKey = getNovelRouteKey(currentNovel);
@@ -408,7 +410,7 @@
                         window.history.replaceState(null, '', window.location.pathname);
                     }
                 } catch (e) {}
-            }, [view, currentNovel, currentChapterIndex, chapters, isPreviewEnv, getNovelRouteKey]);
+            }, [view, currentNovel, currentChapterIndex, chapters, isPreviewEnv, isGlobalLoading, getNovelRouteKey]);
 
             const selectNovel = async (novel, targetIndex = 0, targetRatio = 0, targetChapterId = null) => {
                 setCurrentNovel(novel); setView('reader'); setChapters([]); setContent(""); setIsLoading(true);
