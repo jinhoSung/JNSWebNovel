@@ -178,13 +178,14 @@
         // ----------------------------------------------------------------------
         // [5. 메인 앱 컴포넌트]
         // ----------------------------------------------------------------------
-        function WebtoonLibrary({onNovels}) {
+        function WebtoonLibrary({onNovels, theme}) {
             const [works, setWorks] = useState([]);
             const [work, setWork] = useState(null);
             const [episodes, setEpisodes] = useState([]);
             const [episode, setEpisode] = useState(null);
             const [files, setFiles] = useState([]);
             const [error, setError] = useState('');
+            const [showChapters, setShowChapters] = useState(true);
             const api = path => fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${GITHUB_CONFIG.branch}`).then(r => { if (!r.ok) throw new Error('목록을 불러오지 못했습니다.'); return r.json(); });
             const staticUrl = path => './' + path.split('/').map(encodeURIComponent).join('/');
             useEffect(() => { api('Webtoons').then(d => setWorks(d.filter(x => x.type === 'dir'))).catch(() => setError('웹툰 목록을 불러오지 못했습니다.')); }, []);
@@ -192,13 +193,26 @@
             const openEpisode = async e => { setError(''); setEpisode(e); setFiles([]); try { const d = await api(e.path); setFiles(d.filter(x => x.type === 'file').sort((a,b) => a.name.localeCompare(b.name, 'ko', {numeric:true}))); } catch(err) { setError(err.message); } };
             const html = files.find(f => f.name.toLowerCase() === 'index.html');
             const images = files.filter(f => /\.(jpe?g|png|gif|webp|avif|bmp|svg)$/i.test(f.name));
-            return <div style={{minHeight:'100vh',background:'#111',color:'#eee',fontFamily:'sans-serif'}}>
-                <header style={{padding:'16px',display:'flex',gap:12,alignItems:'center',position:'sticky',top:0,background:'#222',zIndex:10}}><button onClick={onNovels}>소설</button><strong>웹툰</strong><button onClick={() => { if(episode) setEpisode(null); else setWork(null); }} style={{marginLeft:'auto'}}>목록으로</button></header>
-                <main style={{maxWidth:960,margin:'auto',padding:16}}>
-                    <h1 style={{fontSize:24,marginBottom:20}}>{episode ? `${work.name.replace(/：/g, ':')} · ${episode.name}` : work ? work.name.replace(/：/g, ':') : '웹툰 서재'}</h1>
-                    {error && <p>{error}</p>}
-                    {!work && works.map(w => <button key={w.path} onClick={() => openWork(w)} style={{display:'block',width:'100%',textAlign:'left',padding:20,marginBottom:8,background:'#303038',borderRadius:8}}>{w.name.replace(/：/g, ':')}</button>)}
-                    {work && !episode && episodes.map(e => <button key={e.path} onClick={() => openEpisode(e)} style={{display:'block',width:'100%',textAlign:'left',padding:20,marginBottom:8,background:'#303038',borderRadius:8}}>{e.name}</button>)}
+            if (episode) return <div className={`flex h-screen overflow-hidden ${theme.bg} ${theme.text} font-sans-kr`}>
+                {showChapters && <aside className={`w-64 sm:w-72 shrink-0 flex flex-col border-r ${theme.ui}`}>
+                    <div className="h-16 p-4 border-b font-bold truncate">{work.name.replace(/：/g, ':')}</div>
+                    <button onClick={() => {setEpisode(null); setWork(null);}} className="p-4 flex items-center gap-2 border-b opacity-70 text-sm font-bold hover:bg-black/5"><Home size={16}/> 서재로 돌아가기</button>
+                    <div className="flex-1 overflow-y-auto p-2">{episodes.map((e,i) => <button key={e.path} onClick={() => openEpisode(e)} className={`w-full text-left p-3 rounded-lg mb-1 text-sm ${episode.path === e.path ? theme.activeItem : 'hover:bg-black/5 opacity-80'}`}><span className="text-xs opacity-50 block mb-0.5">#{i+1}</span><span className="truncate block font-medium">{e.name}</span></button>)}</div>
+                </aside>}
+                <div className="flex-1 min-w-0 flex flex-col"><header className={`h-16 flex items-center justify-between px-4 border-b ${theme.ui}`}><div className="flex items-center gap-3 min-w-0"><button onClick={() => setShowChapters(!showChapters)} className="p-2 rounded hover:bg-black/10" aria-label="회차 목록"><Menu size={20}/></button><h1 className="font-bold text-lg truncate">{episode.name}</h1></div><div className="flex items-center gap-2"><button onClick={onNovels} className="px-3 py-2 rounded-lg hover:bg-black/10 text-sm font-bold">소설</button><span className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">웹툰</span></div></header>
+                    <main className="flex-1 overflow-y-auto"><div className="max-w-3xl mx-auto px-5 py-8 md:py-16"><div className="mb-10 pb-6 border-b text-center border-black/10"><h2 className="text-2xl md:text-3xl font-bold">{episode.name}</h2></div>{error && <p>{error}</p>}{html && <iframe title={episode.name} src={staticUrl(html.path)} className="w-full border-0" style={{height:'calc(100vh - 180px)'}} />}{!html && images.map(f => <img key={f.path} src={staticUrl(f.path)} loading="lazy" alt={f.name} className="block w-full h-auto" />)}</div></main>
+                </div>
+            </div>;
+            return <div className={`min-h-screen ${theme.bg} ${theme.text} font-sans-kr`}>
+                <header className={`h-16 px-4 flex items-center justify-between border-b sticky top-0 z-20 ${theme.ui}`}>
+                    <div className="flex items-center gap-3 min-w-0">{work && <button onClick={() => episode ? setEpisode(null) : setWork(null)} className="p-2 rounded-lg hover:bg-black/10" aria-label="뒤로"><ChevronLeft size={20}/></button>}<h1 className="font-bold text-lg truncate">{work ? work.name.replace(/：/g, ':') : '나의 서재'}</h1></div>
+                    <div className="flex items-center gap-1 rounded-xl p-1 bg-black/10 text-sm font-bold"><button onClick={onNovels} className="px-4 py-2 rounded-lg opacity-60 hover:opacity-100">소설</button><span className="px-4 py-2 rounded-lg bg-blue-600 text-white shadow-sm">웹툰</span></div>
+                </header>
+                <main className="max-w-6xl mx-auto p-4 md:p-8">
+                    <div className="mb-6"><h2 className="text-2xl font-bold">{episode ? episode.name : work ? '회차 목록' : '웹툰'}</h2><p className="text-sm opacity-60 mt-2">{episode ? work.name.replace(/：/g, ':') : work ? '읽을 회차를 선택하세요' : '작품을 선택해 감상하세요'}</p></div>
+                    {error && <p className="py-8 opacity-70">{error}</p>}
+                    {!work && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">{works.map(w => <button key={w.path} onClick={() => openWork(w)} className={`group flex flex-col text-left rounded-xl overflow-hidden shadow-sm border ${theme.card} transition-transform hover:-translate-y-1`}><div className="h-48 w-full bg-gray-200 relative flex items-center justify-center overflow-hidden"><ImageIcon size={48} className="absolute opacity-20"/><img src={staticUrl(w.path + '/thumbnail.jpg')} className="relative w-full h-full object-cover transition-transform group-hover:scale-105" onError={e => { const names=['thumbnail.jpg','thumbnail.jpeg','thumbnail.png','thumbnail.webp','thumbnail.gif','cover.jpg','cover.jpeg','cover.png','cover.webp','cover.gif']; const index=Number(e.currentTarget.dataset.try || 0)+1; e.currentTarget.dataset.try=index; if(index<names.length) e.currentTarget.src=staticUrl(w.path+'/'+names[index]); else e.currentTarget.style.display='none'; }} alt="" /></div><div className="p-4 flex-1 flex flex-col justify-center"><h3 className="font-bold text-lg mb-1 line-clamp-2">{w.name.replace(/：/g, ':')}</h3><span className="text-sm opacity-60 flex items-center gap-1"><Book size={14}/>웹툰 보기</span></div></button>)}</div>}
+                    {work && !episode && <div className={`rounded-xl border overflow-hidden ${theme.card}`}>{episodes.map((e,i) => <button key={e.path} onClick={() => openEpisode(e)} className="w-full text-left flex items-center gap-4 px-5 py-5 border-b last:border-0 hover:bg-black/5"><span className="text-sm opacity-50 tabular-nums">{String(i+1).padStart(2,'0')}</span><span className="font-bold flex-1">{e.name}</span><ChevronRight size={18}/></button>)}</div>}
                     {episode && html && <iframe title={episode.name} src={staticUrl(html.path)} style={{width:'100%',height:'calc(100vh - 150px)',border:0}} />}
                     {episode && !html && images.map(f => <img key={f.path} src={staticUrl(f.path)} loading="lazy" alt={f.name} style={{display:'block',width:'100%',height:'auto'}} />)}
                 </main>
@@ -598,7 +612,7 @@
                 return <div className="prose whitespace-pre-wrap">{content}</div>;
             };
 
-            if (libraryType === 'webtoon') return <WebtoonLibrary onNovels={() => setLibraryType('novel')} />;
+            if (libraryType === 'webtoon') return <WebtoonLibrary theme={theme} onNovels={() => setLibraryType('novel')} />;
             if (isGlobalLoading) return <div className={`flex h-screen items-center justify-center ${theme.bg} ${theme.text}`}><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-current"></div></div>;
 
             if (errorMsg) return (
@@ -662,7 +676,7 @@
                                 <h1 className="font-bold text-lg truncate font-sans-kr">{view === 'list' ? '나의 서재' : chapters[currentChapterIndex]?.title}</h1>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
-                                <button onClick={() => setLibraryType('webtoon')} className="px-3 py-2 rounded-lg bg-blue-600 text-white font-bold text-sm">웹툰</button>
+                                <div className="flex items-center gap-1 rounded-xl p-1 bg-black/10 text-sm font-bold"><span className="px-4 py-2 rounded-lg bg-blue-600 text-white shadow-sm">소설</span><button onClick={() => setLibraryType('webtoon')} className="px-4 py-2 rounded-lg opacity-60 hover:opacity-100">웹툰</button></div>
                                 <CurrentTimeDisplay />
                                 {view === 'reader' && (
                                     <>
