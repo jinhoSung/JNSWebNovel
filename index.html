@@ -223,7 +223,7 @@
             const images = files.filter(f => /\.(jpe?g|png|gif|webp|avif|bmp|svg)$/i.test(f.name));
             if (episode) return <div className={`flex h-screen overflow-hidden ${theme.bg} ${theme.text} font-sans-kr`}>
                 {showChapters && <aside className={`w-64 sm:w-72 shrink-0 flex flex-col border-r ${theme.ui}`}>
-                    <div className="h-16 p-4 border-b font-bold truncate">{work.name.replace(/：/g, ':')}</div>
+                                        <div className="h-16 p-4 border-b flex items-center justify-between gap-2 font-bold"><span className="truncate">{work.name.replace(/：/g, ':')}</span><button onClick={() => setShowChapters(false)} className="p-1 rounded hover:bg-black/10 shrink-0" aria-label="목차 닫기" title="목차 닫기"><XIcon size={20}/></button></div>
                     <button onClick={() => {setRoute(null,null); setEpisode(null); setWork(null);}} className="p-4 flex items-center gap-2 border-b opacity-70 text-sm font-bold hover:bg-black/5"><Home size={16}/> 서재로 돌아가기</button>
                     <div className="flex-1 overflow-y-auto p-2">{episodes.map((e,i) => <button key={e.path} onClick={() => openEpisode(e)} className={`w-full text-left p-3 rounded-lg mb-1 text-sm ${episode.path === e.path ? theme.activeItem : 'hover:bg-black/5 opacity-80'}`}><span className="text-xs opacity-50 block mb-0.5">#{i+1}</span><span className="truncate block font-medium">{e.name}</span></button>)}</div>
                 </aside>}
