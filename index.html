@@ -188,8 +188,8 @@
             const [showChapters, setShowChapters] = useState(true);
             const api = path => fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${GITHUB_CONFIG.branch}`).then(r => { if (!r.ok) throw new Error('목록을 불러오지 못했습니다.'); return r.json(); });
             const staticUrl = path => './' + path.split('/').map(encodeURIComponent).join('/');
-            useEffect(() => { api('Webtoons').then(d => setWorks(d.filter(x => x.type === 'dir'))).catch(() => setError('웹툰 목록을 불러오지 못했습니다.')); }, []);
-            const openWork = async w => { setError(''); setWork(w); setEpisode(null); setEpisodes([]); try { const d = await api(w.path); setEpisodes(d.filter(x => x.type === 'dir').sort((a,b) => a.name.localeCompare(b.name, 'ko', {numeric:true}))); } catch(e) { setError(e.message); } };
+            useEffect(() => { api('Webtoons').then(d => { const list=d.filter(x => x.type === 'dir'); setWorks(list); const params=new URLSearchParams(location.search); const w=list.find(x => x.name === params.get('webtoon')); if(w) openWork(w, params.get('episode')); }).catch(() => setError('웹툰 목록을 불러오지 못했습니다.')); }, []);
+            const openWork = async (w, episodeName = null) => { setError(''); setWork(w); setEpisode(null); setEpisodes([]); try { const d = await api(w.path); const list=d.filter(x => x.type === 'dir').sort((a,b) => a.name.localeCompare(b.name, 'ko', {numeric:true})); setEpisodes(list); const target=list.find(x => x.name === episodeName); if(target) openEpisode(target); } catch(e) { setError(e.message); } };
             const openEpisode = async e => { setError(''); setEpisode(e); setFiles([]); try { const d = await api(e.path); setFiles(d.filter(x => x.type === 'file').sort((a,b) => a.name.localeCompare(b.name, 'ko', {numeric:true}))); } catch(err) { setError(err.message); } };
             const html = files.find(f => f.name.toLowerCase() === 'index.html');
             const images = files.filter(f => /\.(jpe?g|png|gif|webp|avif|bmp|svg)$/i.test(f.name));
@@ -199,7 +199,7 @@
                     <button onClick={() => {setEpisode(null); setWork(null);}} className="p-4 flex items-center gap-2 border-b opacity-70 text-sm font-bold hover:bg-black/5"><Home size={16}/> 서재로 돌아가기</button>
                     <div className="flex-1 overflow-y-auto p-2">{episodes.map((e,i) => <button key={e.path} onClick={() => openEpisode(e)} className={`w-full text-left p-3 rounded-lg mb-1 text-sm ${episode.path === e.path ? theme.activeItem : 'hover:bg-black/5 opacity-80'}`}><span className="text-xs opacity-50 block mb-0.5">#{i+1}</span><span className="truncate block font-medium">{e.name}</span></button>)}</div>
                 </aside>}
-                <div className="flex-1 min-w-0 flex flex-col"><header className={`h-16 flex items-center justify-between px-4 border-b ${theme.ui}`}><div className="flex items-center gap-3 min-w-0"><button onClick={() => setShowChapters(!showChapters)} className="p-2 rounded hover:bg-black/10" aria-label="회차 목록"><Menu size={20}/></button><h1 className="font-bold text-lg truncate">{episode.name}</h1></div><div className="flex items-center gap-2"><button onClick={onNovels} className="px-3 py-2 rounded-lg hover:bg-black/10 text-sm font-bold">소설</button><span className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">웹툰</span></div></header>
+                <div className="flex-1 min-w-0 flex flex-col"><header className={`h-16 flex items-center justify-between px-4 border-b ${theme.ui}`}><div className="flex items-center gap-3 min-w-0"><button onClick={() => setShowChapters(!showChapters)} className="p-2 rounded hover:bg-black/10" aria-label="회차 목록"><Menu size={20}/></button><h1 className="font-bold text-lg truncate">{episode.name}</h1></div><div className="flex items-center gap-2"><button onClick={() => {const u=new URL(location.href); u.search=''; u.searchParams.set('webtoon',work.name); u.searchParams.set('episode',episode.name); navigator.clipboard.writeText(u.href).then(() => alert('웹툰 링크가 복사되었습니다.')).catch(() => prompt('웹툰 링크를 복사하세요.',u.href));}} className="p-2 rounded-full hover:bg-black/10" title="웹툰 링크 복사" aria-label="웹툰 링크 복사"><LinkIcon size={20}/></button><button onClick={onNovels} className="px-3 py-2 rounded-lg hover:bg-black/10 text-sm font-bold">소설</button><span className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">웹툰</span></div></header>
                     <main className="flex-1 overflow-y-auto"><div className="max-w-3xl mx-auto px-5 py-8 md:py-16"><div className="mb-10 pb-6 border-b text-center border-black/10"><h2 className="text-2xl md:text-3xl font-bold">{episode.name}</h2></div>{error && <p>{error}</p>}{html && <iframe title={episode.name} src={staticUrl(html.path)} className="w-full border-0" style={{height:'calc(100vh - 180px)'}} />}{!html && images.map(f => <img key={f.path} src={staticUrl(f.path)} loading="lazy" alt={f.name} className="block w-full h-auto" />)}</div></main>
                 </div>
             </div>;
@@ -219,7 +219,7 @@
             </div>;
         }
         function App() {
-            const [libraryType, setLibraryType] = useState('novel');
+            const [libraryType, setLibraryType] = useState(() => new URLSearchParams(location.search).has('webtoon') ? 'webtoon' : 'novel');
             const [view, setView] = useState('list');
             const [novels, setNovels] = useState([]);
             const [currentNovel, setCurrentNovel] = useState(null);
