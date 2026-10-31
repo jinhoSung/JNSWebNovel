@@ -95,6 +95,24 @@
             branch: "main",
         };
 
+        let savedPathsPromise;
+        async function listRepositoryFolder(path) {
+            try {
+                const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${GITHUB_CONFIG.branch}`;
+                const response = await fetch(url);
+                if (response.ok) return await response.json();
+            } catch (_) {}
+            savedPathsPromise ||= fetch('./repository-index.json').then(r => { if (!r.ok) throw new Error('저장된 목록을 불러올 수 없습니다.'); return r.json(); });
+            const paths = await savedPathsPromise, prefix = path + '/', entries = new Map();
+            for (const full of paths) {
+                if (!full.startsWith(prefix)) continue;
+                const rest = full.slice(prefix.length), slash = rest.indexOf('/');
+                const name = slash < 0 ? rest : rest.slice(0, slash), itemPath = prefix + name;
+                if (!entries.has(name)) entries.set(name, {name, path:itemPath, sha:itemPath, type:slash < 0 ? 'file' : 'dir', download_url: './' + itemPath.split('/').map(encodeURIComponent).join('/')});
+            }
+            return [...entries.values()];
+        }
+
         const ADMIN_PASSWORD = "admin123";
 
         const THEMES = {
@@ -194,7 +212,7 @@
             const prepareFrame = () => { applyComicStyle(); try { const frame=frameRef.current, doc=frame?.contentDocument; if(!doc) return; frameObserver.current?.disconnect(); const resize=() => { if(frame.isConnected) frame.style.height=doc.body.scrollHeight+'px'; }; doc.documentElement.style.overflow='hidden'; doc.body.style.overflow='hidden'; frameObserver.current=new ResizeObserver(resize); frameObserver.current.observe(doc.body); doc.querySelectorAll('img').forEach(img => img.addEventListener('load',resize)); resize(); } catch(e) {} };
             useEffect(() => () => frameObserver.current?.disconnect(), []);
             useEffect(() => {applyComicStyle();}, [fontSize,lineHeight,fontFamilyKey,files]);
-            const api = path => fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${GITHUB_CONFIG.branch}`).then(r => { if (!r.ok) throw new Error('목록을 불러오지 못했습니다.'); return r.json(); });
+            const api = listRepositoryFolder;
             const staticUrl = path => './' + path.split('/').map(encodeURIComponent).join('/');
             const setRoute = (w, e) => { const u=new URL(location.href); u.search=''; u.searchParams.set('webtoon', w ? w.name : ''); if(e) u.searchParams.set('episode',e.name); history.pushState({},'',u); };
             useEffect(() => { api('Webtoons').then(d => { const list=d.filter(x => x.type === 'dir'); setWorks(list); const params=new URLSearchParams(location.search); const w=list.find(x => x.name === params.get('webtoon')); if(w) openWork(w, params.get('episode'), false); }).catch(() => setError('웹툰 목록을 불러오지 못했습니다.')); }, []);
@@ -389,9 +407,7 @@
                         if (isPreviewEnv) {
                             fetchedNovels = [{ id: '1', title: "테스트 소설", path: "test" }];
                         } else {
-                            const response = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.rootPath}`);
-                            if (!response.ok) throw new Error("서재 정보를 가져올 수 없습니다.");
-                            const data = await response.json();
+                            const data = await listRepositoryFolder(GITHUB_CONFIG.rootPath);
                             if (Array.isArray(data)) {
                                 fetchedNovels = data.filter(i => i.type === 'dir').map(f => ({ 
                                     id: f.sha, 
@@ -454,7 +470,7 @@
             useEffect(() => {
                 // 초기 로딩 중에는 URL의 딥링크 파라미터를 지우면 안 된다.
                 // initializeApp()이 GitHub 소설 목록을 받아온 뒤 이 값을 읽어야 한다.
-                if (isPreviewEnv || isGlobalLoading) return;
+                if (isPreviewEnv || isGlobalLoading || libraryType !== 'novel') return;
                 try {
                     if (view === 'reader' && currentNovel && chapters[currentChapterIndex]) {
                         const novelKey = getNovelRouteKey(currentNovel);
@@ -465,7 +481,7 @@
                         window.history.replaceState(null, '', window.location.pathname);
                     }
                 } catch (e) {}
-            }, [view, currentNovel, currentChapterIndex, chapters, isPreviewEnv, isGlobalLoading, getNovelRouteKey]);
+            }, [view, currentNovel, currentChapterIndex, chapters, isPreviewEnv, isGlobalLoading, getNovelRouteKey, libraryType]);
 
             const selectNovel = async (novel, targetIndex = 0, targetRatio = 0, targetChapterId = null) => {
                 setCurrentNovel(novel); setView('reader'); setChapters([]); setContent(""); setIsLoading(true);
@@ -482,9 +498,7 @@
                             : targetIndex;
                         setCurrentChapterIndex(previewIndex);
                     } else {
-                        const response = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${novel.path}`);
-                        if (!response.ok) throw new Error();
-                        const data = await response.json();
+                        const data = await listRepositoryFolder(novel.path);
                         const loaded = data.filter(f => f.name.endsWith('.txt') || f.name.endsWith('.md')).map(file => {
                             let rawName = file.name.replace(/\.(txt|md)$/i, '').replace(/\[.*?\]/g, '').trim();
                             const numMatch = rawName.match(/(\d+)/);
