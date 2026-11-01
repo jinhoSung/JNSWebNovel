@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>제2화 무거운 튜토리얼</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#09090d;color:#fff;font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif}.wrap{max-width:941px;margin:auto;background:#111;box-shadow:0 0 40px #000}.intro{padding:32px 20px;text-align:center;background:#101017;color:#ccc;font-size:14px}.intro strong{color:#f3d295}.panel{position:relative;line-height:0;margin-bottom:clamp(38px,8vw,96px)}.panel:last-child{margin-bottom:0}.panel img{display:block;width:100%;height:auto}.overlay{position:absolute;line-height:1.35;max-width:74%;font-size:clamp(13px,2.6vw,25px);font-weight:700;word-break:keep-all;overflow-wrap:anywhere}.bubble{color:#18191e;background:#fff;border:2px solid #17171c;border-radius:50% / 42%;padding:.85em 1.05em;text-align:center;line-height:1.42;letter-spacing:-.035em;box-shadow:0 2px 3px #0005}.bubble:before,.bubble:after{content:'';position:absolute;left:63%;width:0;height:0;border-style:solid;transform:rotate(-12deg)}.bubble:before{bottom:-18px;border-width:19px 13px 0 0;border-color:#17171c transparent transparent transparent}.bubble:after{bottom:-13px;margin-left:2px;border-width:16px 10px 0 0;border-color:#fff transparent transparent transparent}.narration{background:rgba(15,15,20,.88);color:#f7f0df;border:1px solid #aa9374;padding:.55em .8em;font-size:clamp(12px,2.1vw,20px);font-weight:500}.system{background:rgba(18,13,8,.94);color:#fff2c5;border:2px solid #d7b46c;padding:.65em .8em;text-align:center;box-shadow:0 0 14px #d39b4590;font-size:clamp(12px,2.1vw,20px)}.sfx{color:#fff;font-size:clamp(18px,4vw,38px);font-style:italic;paint-order:stroke; -webkit-text-stroke:3px #161616;text-shadow:2px 3px 4px #000}.end{padding:55px 20px;text-align:center;background:#101017;color:#bbb;line-height:1.8}@media(max-width:480px){.overlay{max-width:82%}.bubble{border-width:1.5px}.intro{padding:18px 12px}}
+</style></head>
+<body><main class="wrap"><div class="intro"><strong>제2화 무거운 튜토리얼</strong><br>1~72컷 · 아래로 스크롤하여 감상하세요</div><div id="comic"></div><div class="end">제2화 끝<br>다음 화에 계속</div></main>
+<script>
+// 말풍선과 대사는 이미지와 독립된 HTML 요소입니다. 각 항목은 [종류, 위%, 왼쪽%, 너비%, 글자]입니다.
+const scenes = [
+[['system',5,8,60,'차원 이동까지 30초.\n소지품은 전송되지 않습니다.']],
+[['narration',5,5,65,'집주인은 마음만 먹으면 문을 열 수 있었다.']],
+[['bubble',5,5,48,'잠깐만. 잠깐 기다려.'],['system',22,67,25,'27\n26\n25']],
+[['bubble',5,51,40,'기다리라고!']],
+[],
+[['system',5,67,25,'9\n8\n7']],
+[['bubble',5,46,48,'야, 관리자.\n이 몸 그대로 가는 건 아니겠지.'],['system',25,72,20,'3\n2\n1']],
+[],
+[['narration',5,5,64,'눈을 뜨기 전에 피부가 먼저 알았다.']],
+[],
+[['bubble',5,5,25,'……야.']],
+[['system',5,5,61,'튜토리얼 지역: 화염 골짜기\n목표: 북쪽 고대 신전 도달\n거리: 3.2km'],['bubble',32,57,35,'3킬로. 상태창.']],
+[['system',5,52,43,'체력 11 / 100\n근력 4 · 민첩 3\n지구력 2 · 마나 0'],['bubble',34,55,31,'지구력 2.']],
+[['system',5,49,47,'특이사항: 체지방률 38%\n동기화 효율에 영향.'],['bubble',28,57,34,'영향이 있어?'],['system',46,50,46,'연소량이 많을수록\n동기화 속도가 빨라집니다.']],
+[['bubble',5,5,65,'그러니까 살이 많은 게\n오히려 연료라는 거네.'],['system',25,53,42,'긍정적인 해석입니다.']],
+[['bubble',5,5,28,'아, 씨.']],
+[['narration',5,5,66,'바닥 색이 짙을수록 덜 뜨거웠다.']],
+[['system',5,5,62,'몬스터 정보: 재 도마뱀\n등급 F · 움직이는 것에 반응']],
+[],
+[['bubble',5,5,67,'움직이지 않는 게\n최고의 회피기네.']],
+[['narration',5,5,68,'게임에서 전장 지도를 읽던 것처럼\n안전한 칸을 골랐다.']],
+[['bubble',5,5,30,'……쉬자.']],
+[],
+[['narration',5,5,54,'쓰고 떫은 광물 맛.']],
+[['narration',5,5,68,'쓸데없는 움직임을 한 번도 하지 않는 것뿐이었다.']],
+[['narration',5,5,58,'소지품은 전송되지 않았다.']],
+[['sfx',5,68,24,'왕']],
+[['system',5,5,62,'라바 하운드\n등급 E+ · 체온 900도\n집단 사냥']],
+[['bubble',5,5,30,'집단.']],
+[['bubble',5,5,69,'아니, 이런 건 튜토리얼에서\n하나씩 나와야 하는 거 아니냐.']],
+[['sfx',5,5,30,'헉, 헉']],
+[],
+[['narration',5,5,68,'이대로 가면 3분 안에 따라잡힌다.\n계산이 나오자 머리가 식었다.']],
+[['narration',5,5,68,'중력과 돌과 지형.\n몬스터를 다른 것과 싸우게 한다.']],
+[['bubble',5,58,30,'저거다.']],
+[['system',5,5,58,'지급 아이템 없음\n현재 장비: 슬리퍼 한 짝'],['bubble',28,55,40,'그게 지금 나와?']],
+[],
+[['bubble',5,5,49,'좋아. 들어와라.']],
+[],
+[['narration',5,5,68,'비탈을 오르면 막대와 두 팔을 뻗어 쐐기에 닿는다.']],
+[],[],
+[['bubble',5,57,35,'흐읍……']],
+[['bubble',5,48,48,'어서 와. 좀 더 와.\n전부 다 들어와.']],
+[],[],
+[['bubble',5,5,28,'……일곱.']],
+[['narration',5,5,68,'이 몸이 처음으로 쓸모 있어진 순간이었다.']],
+[['bubble',5,49,46,'빠져라, 빠지라고……']],
+[['sfx',5,66,26,'딸깍']],
+[['bubble',5,5,25,'아……']],
+[],
+[['sfx',5,5,48,'쿠르르르']],
+[],[],
+[['system',5,5,64,'라바 하운드 7마리 처치\n경험치 획득'],['system',22,5,64,'튜토리얼 지역 클리어 조건 달성']],
+[['bubble',5,5,60,'……지형 플레이가\n현실에서 먹히네.']],
+[['system',5,5,56,'동기화율 0.0%에서 상승 중\n→ 0.05%'],['bubble',26,55,40,'뭐? 계산이 맞았네.']],
+[['narration',5,5,65,'이 상처는 내일도 있을 것이다.\n그 사실이 싫지 않았다.']],
+[],
+[['narration',5,5,68,'금화 가장자리에 새겨진 선과 같은 모양이었다.']],
+[['bubble',5,52,36,'묘비인가.']],
+[['narration',5,5,68,'세는 걸 그만두었다.\n지금은 신전에 닿는 게 먼저였다.']],
+[['narration',5,5,68,'3킬로미터에 3시간 40분.\n열한 번 쉬고 두 번 넘어졌다.']],
+[],
+[['system',5,5,62,'튜토리얼 클리어\n보상: 동기화율 0.1% 선행 개방']],
+[['bubble',5,5,55,'선행 개방이 뭔데.'],['system',23,45,51,'신전 내부로 입장하십시오.']],
+[],[],[],
+[['bubble',5,5,35,'……누구냐.']],
+[]
+];
+// 수정된 이미지가 있는 장면은 해당 파일을 우선 사용합니다.
+const versions={7:'07-v2.png',42:'42-v2.png',43:'43-v2.png',44:'44-v2.png',48:'48-v3.png',49:'49-v2.png',52:'52-v2.png'};
+const root=document.getElementById('comic');
+scenes.forEach((items,i)=>{const n=i+1,p=document.createElement('section');p.className='panel';p.id='cut-'+n;const img=document.createElement('img');img.src='scenes/'+(versions[n]||String(n).padStart(2,'0')+'.png');img.alt=`제2화 ${n}번 장면`;img.loading=n<4?'eager':'lazy';p.append(img);items.forEach(([kind,top,left,width,content])=>{const el=document.createElement('div');el.className='overlay '+kind;el.style.top=top+'%';el.style.left=left+'%';el.style.width=width+'%';el.textContent=content;el.style.whiteSpace='pre-line';p.append(el)});root.append(p)});
+</script></body></html>
